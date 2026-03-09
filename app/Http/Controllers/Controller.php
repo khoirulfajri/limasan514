@@ -17,4 +17,17 @@ class Controller extends BaseController
         ]);
 
     }
+    public function login()
+    {
+        return view('frontend.page.login', [
+            'title' => 'Login',
+        ]);
+
+    }
+     public function register()
+    {
+        return view('frontend.page.register', [
+            'title' => 'Register',
+        ]);
+    }
 }

@@ -11,14 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('finances', function (Blueprint $table) {
+
             $table->id();
-            $table->string('nama');
-            $table->string('email')->unique();
-            $table->string('no_telp');
-            $table->enum('jenis_kelamin',['L','P']);
-            $table->string('password')->nullable();
-            $table->enum('role',['admin','customer'])->default('customer');
+
+            $table->string('kode_transaksi')->nullable();
+
+            $table->enum('tipe', ['pemasukan', 'pengeluaran']);
+
+            $table->bigInteger('jumlah');
+
+            $table->text('keterangan')->nullable();
+
+            $table->date('tanggal');
+
+            $table->foreignId('booking_id')->nullable();
+
             $table->timestamps();
         });
     }
@@ -28,6 +36,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('finances');
     }
 };
