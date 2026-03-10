@@ -32,17 +32,31 @@ Route::post('/cek-booking', [BookingController::class, 'hasilCek']);
 
 Route::get('/test-email', [BookingController::class, 'testEmail']);
 
-Route::prefix('admin')->middleware('admin')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
-    Route::get('/dashboard', [AdminController::class, 'dashboard']);
-    Route::get('/bookings', [AdminController::class, 'bookings']);
-    Route::get('/booking/confirm/{id}', [AdminController::class, 'confirmBooking']);
-    Route::get('/transaksi', [AdminController::class, 'transaksi']);
-    Route::post('/pemasukan/store', [AdminController::class, 'storePemasukan']);
-    Route::post('/pengeluaran/store', [AdminController::class, 'storePengeluaran']);
-    Route::get('/laporan', [AdminController::class, 'laporan']);
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::post('/users/store', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::post('/users/update/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::get('/users/delete/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+    
+
+    Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
+    Route::post('/booking/store', [AdminController::class, 'storeBooking'])->name('booking.store');
+    Route::post('/booking/update/{id}', [AdminController::class, 'updateBooking'])->name('booking.update');
+    Route::get('/booking/delete/{id}', [AdminController::class, 'deleteBooking'])->name('booking.delete');
+    Route::get('/booking/confirm/{id}', [AdminController::class, 'confirmBooking'])->name('booking.confirm');
+
+    Route::get('/transaksi', [AdminController::class, 'transaksi'])->name('transaksi');
+    Route::get('/transaksi/delete/{id}', [AdminController::class, 'deleteTransaksi'])->name('transaksi.delete');
+
+    Route::post('/transaksi/store',[AdminController::class,'storeTransaksi'])->name('transaksi.store');
+    Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
+    Route::get('/laporan/pdf', [AdminController::class, 'exportPDF'])->name('laporan.pdf');
+    Route::get('/laporan/export',[AdminController::class,'exportPDF'])->name('laporan.export');
 });
 
-Route::get('/admin/login', [AuthController::class, 'login']);
-Route::post('/admin/login', [AuthController::class, 'loginProcess']);
-Route::get('/admin/logout', [AuthController::class, 'logout']);
+Route::get('/admin/login', [AuthController::class, 'login'])->name('admin.login');
+Route::post('/admin/login', [AuthController::class, 'loginProcess'])->name('admin.login.process');
+Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');

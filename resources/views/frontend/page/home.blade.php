@@ -31,7 +31,7 @@
                     </div>
                 </div>
                 <div class="lc-block d-grid gap-2 d-md-flex justify-content-md-start">
-                    <a class="btn btn-danger px-4 me-md-2 text-white fw-bold" href="/produk" role="button">Booking
+                    <a class="btn btn-danger px-4 me-md-2 text-white fw-bold" href="/booking" role="button">Booking
                         Sekarang</a>
                 </div>
             </div>

@@ -77,7 +77,7 @@
         </div>
         @endif
 
-        <form action="/admin/login" method="POST">
+        <form action="{{ route('admin.login.process') }}" method="POST">
 
             @csrf
 

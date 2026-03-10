@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
+
     public function login()
     {
         return view('admin.login');
@@ -21,10 +22,10 @@ class AuthController extends Controller
 
             if (Auth::user()->role != 'admin') {
                 Auth::logout();
-                return back()->with('error', 'Akun bukan admin');
+                return back()->with('error', 'Akun Anda bukan admin');
             }
 
-            return redirect('/admin/dashboard');
+            return redirect()->route('admin.dashboard');
         }
 
         return back()->with('error', 'Email atau password salah');
@@ -35,6 +36,6 @@ class AuthController extends Controller
 
         Auth::logout();
 
-        return redirect('/admin/login');
+        return redirect()->route('admin.login');
     }
 }
