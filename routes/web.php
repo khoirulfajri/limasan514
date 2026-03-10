@@ -27,8 +27,12 @@ Route::get('/payment/{kode}', [BookingController::class, 'payment']);
 Route::post('/upload-bukti', [BookingController::class, 'upload']);
 Route::get('/invoice/{kode}', [BookingController::class, 'invoice']);
 Route::get('/invoice-pdf/{kode}', [BookingController::class, 'invoicePdf']);
-Route::get('/cek-booking', [BookingController::class, 'cekBooking']);
-Route::post('/cek-booking', [BookingController::class, 'hasilCek']);
+
+Route::get('/cek-booking', [BookingController::class,'formCekBooking'])->name('cek.booking');
+// submit cek booking & upload bukti
+Route::post('/cek-booking', [BookingController::class,'cekBooking'])->name('cek.booking.submit');
+// upload bukti pembayaran
+Route::post('/cek-booking/upload/{id}', [BookingController::class,'uploadBukti'])->name('cek.booking.upload');
 
 Route::get('/test-email', [BookingController::class, 'testEmail']);
 

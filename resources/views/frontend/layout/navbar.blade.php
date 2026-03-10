@@ -1,4 +1,5 @@
-{{-- <div class="navAtas d-block px-3 py-2 text-center text-bold text-white fst-italic sticky-top" style="background-color: #e09f9f">
+{{-- <div class="navAtas d-block px-3 py-2 text-center text-bold text-white fst-italic sticky-top"
+    style="background-color: #e09f9f">
     Homestay Nuansa Jawa dengan Kenyamanan Modern
 </div> --}}
 <nav class="navBawah navbar navbar-expand-lg shadow bg-white fixed-top" id="navBawah">
@@ -19,6 +20,8 @@
                 <a class="nav-link me-3 nav-menu {{ Request::is('booking') ? 'active' : '' }}"
                     href="/booking">Booking</a>
                 <a class="nav-link me-3 nav-menu" href="{{ url('/#hubungiKami') }}">Hubungi Kami</a>
+                <a class="nav-link me-3 nav-menu {{ Request::is('cek-booking') ? 'active' : '' }}"
+                    href="/cek-booking">Cek Booking</a>
             </div>
             <!-- Kanan: Login/Register atau Profil -->
             <div class="d-flex align-items-center">

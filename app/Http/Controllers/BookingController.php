@@ -179,4 +179,38 @@ class BookingController extends Controller
 
         return "Email berhasil dikirim (cek inbox)";
     }
+
+    // halaman form booking
+    public function formCekBooking()
+    {
+        return view('frontend.page.cek-booking')->with('title', 'Cek Booking');
+    }
+
+    public function cekBooking(Request $request)
+    {
+        $booking = Booking::where('kode_booking', $request->kode_booking)
+            ->orWhere('email', $request->kode_booking)
+            ->first();
+
+        return view('frontend.page.cek-booking', compact('booking'))->with('title', 'Cek Booking');
+    }
+
+    // Upload bukti pembayaran
+    public function uploadBukti(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        $request->validate([
+            'bukti' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        $file = $request->file('bukti');
+        $namaFile = time() . '_' . $file->getClientOriginalName();
+        $file->storeAs('public/bukti', $namaFile);
+
+        $booking->bukti_pembayaran = $namaFile;
+        $booking->save();
+
+        return back()->with('success', 'Bukti pembayaran berhasil diupload');
+    }
 }
