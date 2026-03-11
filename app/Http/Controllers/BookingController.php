@@ -191,7 +191,7 @@ class BookingController extends Controller
         $booking = Booking::where('kode_booking', $request->kode_booking)
             ->orWhere('email', $request->kode_booking)
             ->first();
-
+            
         return view('frontend.page.cek-booking', compact('booking'))->with('title', 'Cek Booking');
     }
 

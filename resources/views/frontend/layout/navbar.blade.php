@@ -24,7 +24,7 @@
                     href="/cek-booking">Cek Booking</a>
             </div>
             <!-- Kanan: Login/Register atau Profil -->
-            <div class="d-flex align-items-center">
+            {{-- <div class="d-flex align-items-center">
                 @if(Cookie::has('ctoken'))
                 <!-- Jika sudah login -->
                 <div class="dropdown">
@@ -42,7 +42,7 @@
                 <i class="fa-solid fa-user" style="color: #e09f9f"></i>
                 <a class="btn fw-bold me-2" style="color: #e09f9f" href="/login" role="button">Masuk</a>
                 @endif
-            </div>
+            </div> --}}
         </div>
     </div>
 </nav>

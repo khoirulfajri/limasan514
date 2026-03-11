@@ -48,7 +48,7 @@
             <h4 class="text-white fw-bold text-center">Limasan 514</h4>
 
             <a href="{{route('admin.dashboard')}}">Dashboard</a>
-            <a href="{{route('admin.users')}}">User</a>
+            {{-- <a href="{{route('admin.users')}}">User</a> --}}
             <a href="{{route('admin.bookings')}}">Booking</a>
             <a href="{{route('admin.transaksi')}}">Transaksi</a>
             <a href="{{route('admin.laporan')}}">Laporan</a>

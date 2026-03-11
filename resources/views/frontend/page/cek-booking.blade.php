@@ -50,7 +50,7 @@
                     {{-- Bukti Pembayaran --}}
                     @if($booking->bukti_pembayaran)
                     <p><b>Bukti Pembayaran :</b></p>
-                    <img src="{{asset('storage/bukti/'.$booking->bukti_pembayaran)}}" width="200" class="img-thumbnail">
+                    <img src="{{asset('storage/'.$booking->bukti_pembayaran)}}" width="200" class="img-thumbnail">
                     @endif
 
                     {{-- Form Upload Bukti Pembayaran --}}
