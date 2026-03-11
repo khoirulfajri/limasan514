@@ -14,14 +14,14 @@
 
 <div class="row">
 
-    <div class="col-md-3">
+    {{-- <div class="col-md-3">
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <h5>Total User</h5>
                 <h3>{{$totalUser}}</h3>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <div class="col-md-3">
         <div class="card bg-success text-white">
@@ -49,12 +49,6 @@
             </div>
         </div>
     </div>
-
-</div>
-
-{{-- SALDO --}}
-<div class="row mt-3">
-
     <div class="col-md-3">
         <div class="card bg-dark text-white">
             <div class="card-body">

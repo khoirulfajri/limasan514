@@ -4,32 +4,44 @@
 
 <h3>Tambah Booking</h3>
 
+
 <form action="{{route('admin.booking.store')}}" method="POST" enctype="multipart/form-data">
     @csrf
 
+    <label>Nama</label>
     <input name="nama" class="form-control mb-2" placeholder="Nama">
 
+    <label>Email</label>
     <input name="email" class="form-control mb-2" placeholder="Email">
 
+    <label>No Telp</label>
     <input name="no_telp" class="form-control mb-2" placeholder="No Telp">
 
+    <label>Jenis Kelamin</label>
     <select name="jenis_kelamin" class="form-control mb-2">
         <option value="L">Laki-laki</option>
         <option value="P">Perempuan</option>
     </select>
 
+    <label>Jumlah Tamu</label>
     <input name="jumlah_tamu" class="form-control mb-2" placeholder="Jumlah Tamu">
 
+    <label>Jumlah Kamar</label>
     <input name="jumlah_kamar" class="form-control mb-2" placeholder="Jumlah Kamar">
 
+    <label>Check In</label>
     <input type="date" name="check_in" class="form-control mb-2">
 
+    <label>Check Out</label>
     <input type="date" name="check_out" class="form-control mb-2">
 
+    <label>Total Malam</label>
     <input name="total_malam" class="form-control mb-2" placeholder="Total Malam">
 
+    <label>Total Harga</label>
     <input name="total_harga" class="form-control mb-2" placeholder="Total Harga">
 
+    <label>Catatan</label>
     <textarea name="catatan" class="form-control mb-2" placeholder="Catatan"></textarea>
 
     <label>Bukti Pembayaran</label>
@@ -87,9 +99,27 @@
         <td>
 
             @if($b->bukti_pembayaran)
+            <img src="{{ asset('storage/'.$b->bukti_pembayaran) }}" width="80" class="img-thumbnail"
+                style="cursor:pointer" data-bs-toggle="modal" data-bs-target="#modalBukti{{ $b->id }}">
+            @endif
+            {{-- tampilin Modal --}}
+            @if($b->bukti_pembayaran)
+            <div class="modal fade" id="modalBukti{{ $b->id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
 
-            <img src="{{asset('storage/bukti/'.$b->bukti_pembayaran)}}" width="80">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Bukti Pembayaran</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
 
+                        <div class="modal-body text-center">
+                            <img src="{{ asset('storage/'.$b->bukti_pembayaran) }}" class="img-fluid">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
             @endif
 
         </td>

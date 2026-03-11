@@ -144,7 +144,7 @@ class AdminController extends Controller
 
             $file = $request->file('bukti_pembayaran');
 
-            $namaFile = time() . '_' . $file->getClientOriginalName();
+            $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
 
             $file->storeAs('public/bukti', $namaFile);
 
