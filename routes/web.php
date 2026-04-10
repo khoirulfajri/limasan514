@@ -4,6 +4,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AdminController; // Add this line
 use App\Http\Controllers\AuthController; // Add this line
+use App\Http\Controllers\VoucherController; // Add this line
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,22 +24,28 @@ Route::get('/register', [Controller::class, 'register'])->name('register');
 
 Route::get('/booking', [BookingController::class, 'booking']);
 Route::post('/booking/store', [BookingController::class, 'store']);
-Route::get('/payment/{kode}', [BookingController::class, 'payment']);
-Route::post('/upload-bukti', [BookingController::class, 'upload']);
+Route::post('/booking/confirm', [BookingController::class, 'confirmBooking']);
+Route::get('/payment', [BookingController::class, 'payment']);
+// Route::post('/upload-bukti', [BookingController::class, 'upload']);
 Route::get('/invoice/{kode}', [BookingController::class, 'invoice']);
 Route::get('/invoice-pdf/{kode}', [BookingController::class, 'invoicePdf']);
+Route::get('/cek-voucher', [BookingController::class, 'cekVoucher']);
 
 Route::get('/cek-booking', [BookingController::class,'formCekBooking'])->name('cek.booking');
 // submit cek booking & upload bukti
 Route::post('/cek-booking', [BookingController::class,'cekBooking'])->name('cek.booking.submit');
 // upload bukti pembayaran
 Route::post('/cek-booking/upload/{id}', [BookingController::class,'uploadBukti'])->name('cek.booking.upload');
+// mendapatkan tanggal penuh untuk kalender
+Route::get('/full-dates', [BookingController::class, 'getFullDates']);
 
-Route::get('/test-email', [BookingController::class, 'testEmail']);
+// Route::get('/test-email', [BookingController::class, 'testEmail']);
 
 Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    Route::resource('vouchers', VoucherController::class);
 
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::post('/users/store', [AdminController::class, 'storeUser'])->name('users.store');

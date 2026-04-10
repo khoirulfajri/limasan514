@@ -23,6 +23,15 @@
         <option value="P">Perempuan</option>
     </select>
 
+    <label>Sumber Booking</label>
+    <select name="sumber" class="form-control">
+        <option value="website">Website</option>
+        <option value="booking.com">Booking.com</option>
+        <option value="agoda">Agoda</option>
+        <option value="tiket.com">Tiket.com</option>
+        <option value="on_the_spot">On The Spot</option>
+    </select>
+
     <label>Jumlah Tamu</label>
     <input name="jumlah_tamu" class="form-control mb-2" placeholder="Jumlah Tamu">
 
@@ -54,12 +63,23 @@
 <hr>
 
 <h3>Data Booking</h3>
+<form method="GET">
+    <select name="sumber" onchange="this.form.submit()">
+        <option value="">Semua</option>
+        <option value="website">Website</option>
+        <option value="booking.com">Booking.com</option>
+        <option value="agoda">Agoda</option>
+        <option value="tiket.com">Tiket.com</option>
+        <option value="on_the_spot">On The Spot</option>
+    </select>
+</form>
 
 <table class="table table-bordered">
 
     <tr>
         <th>Kode</th>
         <th>Nama</th>
+        <th>Sumber</th>
         <th>Check In</th>
         <th>Check Out</th>
         <th>Status</th>
@@ -75,6 +95,21 @@
         <td>{{$b->kode_booking}}</td>
 
         <td>{{$b->nama}}</td>
+        <td>
+            @php
+            $color = match($b->sumber) {
+            'website' => 'primary',
+            'booking.com' => 'success',
+            'agoda' => 'warning',
+            'tiket.com' => 'danger',
+            'on_the_spot' => 'secondary',
+            };
+            @endphp
+
+            <span class="badge bg-{{ $color }}">
+                {{ $b->sumber }}
+            </span>
+        </td>
 
         <td>{{$b->check_in}}</td>
 

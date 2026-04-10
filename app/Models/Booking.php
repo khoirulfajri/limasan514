@@ -28,6 +28,7 @@ class Booking extends Model
         'total_harga',
 
         'catatan',
+        'sumber',
 
         'status',
         'bukti_pembayaran'

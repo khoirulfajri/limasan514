@@ -35,6 +35,17 @@ return new class extends Migration
 
             $table->bigInteger('total_harga');
 
+            $table->enum('sumber', [
+                'website',
+                'booking.com',
+                'agoda',
+                'tiket.com',
+                'on_the_spot'
+            ])->default('website');
+
+            $table->foreignId('voucher_id')->nullable();
+            $table->integer('diskon')->default(0);
+
             $table->text('catatan')->nullable();
 
             $table->enum('status', ['pending', 'confirmed', 'cancelled'])

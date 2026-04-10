@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BookingConfirmedMail; // Add this line to import the BookingConfirmedMail class
 use App\Models\User; // Add this line to import the User model
 use App\Models\Booking; // Add this line to import the Booking model
 use App\Models\Finance; // Add this line to import the Finance model
@@ -98,10 +100,16 @@ class AdminController extends Controller
 
 
     // Halaman Booking
-    public function bookings()
+    public function bookings(Request $request)
     {
+        $query = Booking::query();
 
-        $bookings = Booking::latest()->get();
+        // FILTER SUMBER
+        if ($request->sumber) {
+            $query->where('sumber', $request->sumber);
+        }
+
+        $bookings = $query->latest()->get();
 
         return view('admin.bookings', compact('bookings'))->with('title', 'Bookings');
     }
@@ -112,9 +120,19 @@ class AdminController extends Controller
 
         $booking = Booking::findOrFail($id);
 
+        //  cegah double confirm
+        if ($booking->status === 'confirmed') {
+            return back()->with('error', 'Booking sudah dikonfirmasi');
+        }
+
+        //  update status
         $booking->update([
             'status' => 'confirmed'
         ]);
+
+        //  kirim email
+        Mail::to($booking->email)
+            ->send(new BookingConfirmedMail($booking));
 
         Finance::create([
 
@@ -144,12 +162,16 @@ class AdminController extends Controller
 
             $file = $request->file('bukti_pembayaran');
 
-            $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
+            $namaFile =time() . '_' . $file->getClientOriginalName();
 
             $file->storeAs('public/bukti', $namaFile);
 
             $bukti = $namaFile;
         }
+
+        $request->validate([
+            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot'
+        ]);
 
         Booking::create([
 
@@ -170,6 +192,7 @@ class AdminController extends Controller
             'total_harga' => $request->total_harga,
 
             'catatan' => $request->catatan,
+            'sumber' => $request->sumber ?? 'website',
 
             'bukti_pembayaran' => $bukti,
 
@@ -184,6 +207,10 @@ class AdminController extends Controller
     {
 
         $booking = Booking::findOrFail($id);
+
+        $request->validate([
+            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot'
+        ]);
 
         $booking->update([
 
@@ -201,7 +228,8 @@ class AdminController extends Controller
             'total_malam' => $request->total_malam,
             'total_harga' => $request->total_harga,
 
-            'catatan' => $request->catatan
+            'catatan' => $request->catatan,
+            'sumber' => $request->sumber ?? 'website'
 
         ]);
 

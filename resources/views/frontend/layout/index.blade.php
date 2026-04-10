@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" href="{{asset('css/custom.css')}}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <title>Limasan514 | {{$title}}</title>
+    <title>{{ $title ?? 'Limasan514' }}</title>
 </head>
 
 <body>
@@ -75,16 +75,33 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    flatpickr("#checkin",{
-dateFormat:"Y-m-d",
-minDate:"today"
-})
-
-flatpickr("#checkout",{
-dateFormat:"Y-m-d",
-minDate:"today"
-})
-
+    let fullDates = [];
+    
+    // ambil data dari backend
+    fetch('/full-dates')
+        .then(res => res.json())
+        .then(data => {
+    
+            fullDates = data;
+    
+            // init checkin
+            flatpickr("#checkin", {
+                dateFormat: "Y-m-d",
+                disable: fullDates,
+                minDate: "today",
+                onChange: function(selectedDates, dateStr) {
+                    checkoutPicker.set('minDate', dateStr);
+                }
+            });
+    
+            // init checkout
+            window.checkoutPicker = flatpickr("#checkout", {
+                dateFormat: "Y-m-d",
+                disable: fullDates,
+                minDate: "today"
+            });
+    
+        });
 </script>
 
 </html>
