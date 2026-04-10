@@ -5,7 +5,8 @@
         <div class="d-flex justify-content-center flex-wrap">
             <!-- Bagian Informasi Guesthouse -->
             <div class="col-md-4 col-12 py-5 px-4 text-center">
-                <img src="{{asset('assets/fotokamar1.jpeg')}}" class="img-fluid rounded mb-4 shadow" alt="Guesthouse Limasan514">
+                <img src="{{asset('assets/fotokamar1.jpeg')}}" class="img-fluid rounded mb-4 shadow"
+                    alt="Guesthouse Limasan514">
                 <h2 class="fw-bold text-danger">Guesthouse Limasan514</h2>
                 <p class="fst-italic">Terdapat <b>5 kamar</b> dengan fasilitas lengkap dan nyaman untuk menginap.</p>
                 <span class="h3 fw-bold text-danger">Rp 350.000 </span>
@@ -58,14 +59,15 @@
                         <label>Jumlah Kamar</label>
                         <input type="number" class="form-control mb-3" id="jumlah_kamar" name="jumlah_kamar"
                             placeholder="Minimal 1 Kamar" min="1" max="5" value="1" required>
-                        <textarea class="form-control mb-3" name="catatan" placeholder="Catatan Tambahan"></textarea>
+                        <textarea class="form-control mb-3" name="catatan" placeholder="Request"></textarea>
                         <button class="btn btn-danger w-100">
                             Booking Sekarang
                         </button>
                     </form>
                     <p class="mt-4 fst-italic text-center">Estimasi Harga</p>
                     <p class="fst-italic text-center">Total Malam : <span id="total_malam"></span></p>
-                    <p class="h2 text-danger fw-bold fst-italic text-center">Total Harga : <span id="total_harga">Rp 0</span>
+                    <p class="h2 text-danger fw-bold fst-italic text-center">Total Harga : <span id="total_harga">Rp
+                            0</span>
                     </p>
                 </div>
             </div>

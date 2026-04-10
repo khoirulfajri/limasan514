@@ -38,7 +38,7 @@
                 <h3 class="fw-bold text-danger">Rp {{number_format($booking->total_harga)}}</h3>
             </p>
             <p>
-                Catatan :
+                Request :
                 {{$booking->catatan}}
             </p>
 

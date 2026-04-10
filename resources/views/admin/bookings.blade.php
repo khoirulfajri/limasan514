@@ -41,8 +41,8 @@
     <label>Total Harga</label>
     <input name="total_harga" class="form-control mb-2" placeholder="Total Harga">
 
-    <label>Catatan</label>
-    <textarea name="catatan" class="form-control mb-2" placeholder="Catatan"></textarea>
+    <label>Request</label>
+    <textarea name="catatan" class="form-control mb-2" placeholder="Request"></textarea>
 
     <label>Bukti Pembayaran</label>
     <input type="file" name="bukti_pembayaran" class="form-control mb-3">

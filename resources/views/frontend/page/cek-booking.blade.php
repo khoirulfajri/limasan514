@@ -25,44 +25,83 @@
 
                 @if(isset($booking))
 
-                {{-- Detail booking --}}
+                {{-- Detail Booking --}}
                 <div class="card shadow p-4">
 
-                    <h4>Detail Booking</h4>
+                    <h4 class="mb-4">Detail Booking</h4>
 
-                    <p><b>Kode Booking :</b> {{$booking->kode_booking}}</p>
-                    <p><b>Nama :</b> {{$booking->nama}}</p>
-                    <p><b>Email :</b> {{$booking->email}}</p>
-                    <p><b>Check In :</b> {{$booking->check_in}}</p>
-                    <p><b>Check Out :</b> {{$booking->check_out}}</p>
-                    <p><b>Total Malam :</b> {{$booking->total_malam}}</p>
-                    <p><b>Total Harga :</b> Rp {{number_format($booking->total_harga)}}</p>
-                    <p><b>Status :</b>
-                        @if($booking->status=='pending')
-                        <span class="badge bg-warning">Pending</span>
-                        @elseif($booking->status=='confirmed')
-                        <span class="badge bg-success">Confirmed</span>
-                        @else
-                        <span class="badge bg-danger">Cancelled</span>
-                        @endif
-                    </p>
+                    {{-- Status --}}
+                    <p><b>Status :</b></p>
+                    @if($booking->status == 'pending')
+                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="fas fa-hourglass-half me-2"></i>
+                        <strong>Pending</strong> - Menunggu konfirmasi.
+                    </div>
+                    @elseif($booking->status == 'confirmed')
+                    <div class="alert alert-success d-flex align-items-center" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Confirmed</strong> - Booking telah dikonfirmasi.
+                    </div>
+                    @else
+                    <div class="alert alert-danger d-flex align-items-center" role="alert">
+                        <i class="fas fa-times-circle me-2"></i>
+                        <strong>Cancelled</strong> - Booking telah dibatalkan.
+                    </div>
+                    @endif
+
+                    {{-- Detail Booking Table --}}
+                    <table class="table table-bordered mt-4">
+                        <tr>
+                            <th>Kode Booking</th>
+                            <td>{{$booking->kode_booking}}</td>
+                        </tr>
+                        <tr>
+                            <th>Nama</th>
+                            <td>{{$booking->nama}}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>{{$booking->email}}</td>
+                        </tr>
+                        <tr>
+                            <th>Check In</th>
+                            <td>{{$booking->check_in}}</td>
+                        </tr>
+                        <tr>
+                            <th>Check Out</th>
+                            <td>{{$booking->check_out}}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Malam</th>
+                            <td>{{$booking->total_malam}}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Harga</th>
+                            <td>Rp {{number_format($booking->total_harga)}}</td>
+                        </tr>
+                    </table>
 
                     {{-- Bukti Pembayaran --}}
                     @if($booking->bukti_pembayaran)
-                    <p><b>Bukti Pembayaran :</b></p>
-                    <img src="{{asset('storage/'.$booking->bukti_pembayaran)}}" width="200" class="img-thumbnail">
+                    <p class="mt-4"><b>Bukti Pembayaran :</b></p>
+                    <img src="{{asset('storage/'.$booking->bukti_pembayaran)}}" width="200"
+                        class="img-thumbnail border border-primary shadow-sm" alt="Bukti Pembayaran">
                     @endif
 
                     {{-- Form Upload Bukti Pembayaran --}}
-                    @if($booking->status=='pending' && !$booking->bukti_pembayaran)
-                    <label class="mb-2">Belum ada Bukti Pembayaran</label>
-                    <form method="POST" action="{{route('cek.booking.upload',$booking->id)}}"
-                        enctype="multipart/form-data" class="mt-3">
-                        @csrf
-                        <label>Upload Bukti Pembayaran</label>
-                        <input type="file" name="bukti" class="form-control mb-2" required>
-                        <button class="btn btn-primary w-100">Upload</button>
-                    </form>
+                    @if($booking->status == 'pending' && !$booking->bukti_pembayaran)
+                    <div class="mt-4">
+                        <label class="mb-2 text-danger"><b>Belum ada Bukti Pembayaran</b></label>
+                        <form method="POST" action="{{route('cek.booking.upload', $booking->id)}}"
+                            enctype="multipart/form-data" class="mt-3">
+                            @csrf
+                            <label class="form-label">Upload Bukti Pembayaran</label>
+                            <input type="file" name="bukti" class="form-control mb-3" required>
+                            <button class="btn btn-primary w-100">
+                                <i class="fas fa-upload me-2"></i> Upload
+                            </button>
+                        </form>
+                    </div>
                     @endif
 
                 </div>
