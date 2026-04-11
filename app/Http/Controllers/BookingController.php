@@ -18,7 +18,7 @@ class BookingController extends Controller
     // mendapatkan tanggal penuh (tidak tersedia)
     public function getFullDates()
     {
-        $totalRooms = \App\Models\Room::count();
+        $totalRooms = \App\Models\Room::count() -1; // dikurangi 1 karena kita butuh 1 kamar untuk buffer booking di OTA
 
         $bookings = \App\Models\Booking::where('status', '!=', 'cancelled')->get();
 
@@ -53,7 +53,7 @@ class BookingController extends Controller
     }
 
     // Cek ketersediaan kamar
-    private function checkAvailability($checkin, $checkout)
+    public function checkAvailability($checkin, $checkout)
     {
 
         $bookedRooms = DB::table('booking_rooms')

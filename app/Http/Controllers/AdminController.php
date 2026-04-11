@@ -7,6 +7,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon; // Add this line to import the Carbon class
 use App\Mail\BookingConfirmedMail; // Add this line to import the BookingConfirmedMail class
 use App\Models\User; // Add this line to import the User model
 use App\Models\Booking; // Add this line to import the Booking model
@@ -23,13 +24,9 @@ class AdminController extends Controller
         $totalPengeluaran = Finance::where('tipe', 'pengeluaran')->sum('jumlah');
         $saldo = $totalPemasukan - $totalPengeluaran;
 
-        $grafik = Finance::selectRaw("MONTH(tanggal) as bulan,
-        SUM(CASE WHEN tipe='pemasukan' THEN jumlah ELSE 0 END) as pemasukan,
-        SUM(CASE WHEN tipe='pengeluaran' THEN jumlah ELSE 0 END) as pengeluaran 
-        ")
-            ->groupBy('bulan')
-            ->orderBy('bulan')
-            ->get();
+        $dataSumber = \App\Models\Booking::select('sumber', DB::raw('count(*) as total'))
+            ->groupBy('sumber')
+            ->pluck('total', 'sumber');
 
         $pendingBooking = Booking::where('status', 'pending')->count();
 
@@ -40,7 +37,7 @@ class AdminController extends Controller
             'totalPengeluaran',
             'saldo',
             'pendingBooking',
-            'grafik'
+            'dataSumber'
         ));
     }
 
@@ -105,13 +102,30 @@ class AdminController extends Controller
         $query = Booking::query();
 
         // FILTER SUMBER
-        if ($request->sumber) {
+        if ($request->has('sumber') && $request->sumber != '') {
             $query->where('sumber', $request->sumber);
         }
 
         $bookings = $query->latest()->get();
 
-        return view('admin.bookings', compact('bookings'))->with('title', 'Bookings');
+        // 🔥 CEK KAMAR HARI INI
+        $today = now()->format('Y-m-d');
+
+        $availableRooms = app(BookingController::class)
+            ->checkAvailability($today, $today);
+
+        $sisaKamar = $availableRooms->count();
+
+        $warning = null;
+
+        if ($sisaKamar <= 1) {
+            $warning = "⚠️ Sisa {$sisaKamar} kamar hari ini!";
+        } elseif ($sisaKamar <= 3) {
+            $warning = "⚠️ Kamar mulai menipis! Sisa {$sisaKamar}";
+        }
+
+        return view('admin.bookings', compact('bookings', 'warning', 'sisaKamar'))
+            ->with('title', 'Bookings');
     }
 
     // update Status Booking otomatis masuk ke pemasukan
@@ -152,28 +166,47 @@ class AdminController extends Controller
 
         return back()->with('success', 'Booking berhasil dikonfirmasi');
     }
+
     // Tambah Booking
     public function storeBooking(Request $request)
     {
+        // ======================
+        // 🔒 VALIDASI
+        // ======================
+        $request->validate([
+            'nama' => 'required',
+            'email' => 'required|email',
+            'no_telp' => 'required',
+            'jumlah_kamar' => 'required|numeric|min:1',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
+            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot',
+            'bukti_pembayaran' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
+        ]);
 
+        // ======================
+        // 🔥 UPLOAD BUKTI
+        // ======================
         $bukti = null;
 
         if ($request->hasFile('bukti_pembayaran')) {
-
-            $file = $request->file('bukti_pembayaran');
-
-            $namaFile =time() . '_' . $file->getClientOriginalName();
-
-            $file->storeAs('public/bukti', $namaFile);
-
-            $bukti = $namaFile;
+            $bukti = $request->file('bukti_pembayaran')->store('bukti', 'public');
         }
 
-        $request->validate([
-            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot'
-        ]);
+        // ======================
+        // 🔥 HITUNG TOTAL
+        // ======================
+        $totalMalam = Carbon::parse($request->check_in)
+            ->diffInDays($request->check_out);
 
-        Booking::create([
+        $harga = 350000;
+
+        $totalHarga = $totalMalam * $harga * $request->jumlah_kamar;
+
+        // ======================
+        // 🔥 SIMPAN BOOKING
+        // ======================
+        $booking = Booking::create([
 
             'kode_booking' => 'BK' . time(),
 
@@ -188,20 +221,39 @@ class AdminController extends Controller
             'check_in' => $request->check_in,
             'check_out' => $request->check_out,
 
-            'total_malam' => $request->total_malam,
-            'total_harga' => $request->total_harga,
+            'total_malam' => $totalMalam,
+            'total_harga' => $totalHarga,
 
             'catatan' => $request->catatan,
             'sumber' => $request->sumber ?? 'website',
 
             'bukti_pembayaran' => $bukti,
 
-            'status' => 'pending'
-
+            'status' => $request->sumber != 'website' ? 'confirmed' : 'pending'
         ]);
 
-        return back();
+        // ======================
+        // 🔥 ASSIGN ROOM (WAJIB)
+        // ======================
+        $availableRooms = app(\App\Http\Controllers\BookingController::class)
+            ->checkAvailability($request->check_in, $request->check_out);
+
+        if ($availableRooms->count() < $request->jumlah_kamar) {
+            return back()->with('error', 'Kamar tidak cukup');
+        }
+
+        $rooms = $availableRooms->take($request->jumlah_kamar);
+
+        foreach ($rooms as $room) {
+            DB::table('booking_rooms')->insert([
+                'booking_id' => $booking->id,
+                'room_id' => $room->id
+            ]);
+        }
+
+        return back()->with('success', 'Booking berhasil ditambahkan');
     }
+
     // ubah Booking
     public function updateBooking(Request $request, $id)
     {
@@ -235,6 +287,7 @@ class AdminController extends Controller
 
         return back()->with('success', 'Booking berhasil diupdate');
     }
+
     // hapus Booking
     public function deleteBooking($id)
     {
@@ -269,6 +322,7 @@ class AdminController extends Controller
             'saldo'
         ))->with('title', 'Transaksi');
     }
+
     // hapus data Transaksi
     public function deleteTransaksi($id)
     {
@@ -378,22 +432,50 @@ class AdminController extends Controller
             'dataPengeluaran'
         ));
     }
-    // export Laporan PDF
-    public function exportPDF()
-    {
 
-        $data = Finance::orderBy('tanggal', 'asc')->get();
-        $pemasukan = Finance::where('tipe', 'pemasukan')->sum('jumlah');
-        $pengeluaran = Finance::where('tipe', 'pengeluaran')->sum('jumlah');
+    // export Laporan PDF
+    public function exportPDF(Request $r)
+    {
+        $query = Finance::query();
+
+        if ($r->bulan) {
+            $query->whereMonth('tanggal', $r->bulan);
+        }
+
+        if ($r->tahun) {
+            $query->whereYear('tanggal', $r->tahun);
+        }
+
+        $data = $query->get();
+
+        // ======================
+        // PEMASUKAN
+        // ======================
+        $pemasukan = $data->where('tipe', 'pemasukan')->sum('jumlah');
+
+        // detail pemasukan (per keterangan)
+        $detailPemasukan = $data->where('tipe', 'pemasukan')
+            ->groupBy('keterangan');
+
+        // ======================
+        // PENGELUARAN
+        // ======================
+        $pengeluaran = $data->where('tipe', 'pengeluaran')->sum('jumlah');
+
+        $detailPengeluaran = $data->where('tipe', 'pengeluaran')
+            ->groupBy('keterangan');
+
         $saldo = $pemasukan - $pengeluaran;
 
-        $pdf = Pdf::loadView('admin.laporan_pdf', compact(
-            'data',
+        $pdf = \PDF::loadView('admin.laporan_pdf', compact(
             'pemasukan',
             'pengeluaran',
-            'saldo'
+            'saldo',
+            'detailPemasukan',
+            'detailPengeluaran',
+            'r'
         ));
 
-        return $pdf->download('laporan-keuangan.pdf');
+        return $pdf->stream();
     }
 }
