@@ -102,6 +102,9 @@
             });
     
         });
+        if(fullDates.length > 0){
+            document.getElementById("warning_kamar").innerHTML ="⚠️ Beberapa tanggal sudah penuh, silakan pilih tanggal lain";
+        }
 </script>
 
 </html>

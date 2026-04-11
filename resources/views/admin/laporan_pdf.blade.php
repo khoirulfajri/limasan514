@@ -67,15 +67,19 @@
     <h3>Limasan 514</h3>
 
     <p class="text-center">
-        Periode Tahun {{date('Y')}}
+        Periode
+        @if(request('bulan'))
+        {{ date('F', mktime(0,0,0,request('bulan'),1)) }} {{ request('tahun') }}
+        @else
+        Tahun {{ request('tahun') ?? date('Y') }}
+        @endif
     </p>
 
     <hr>
 
-
     <!-- ======================
-     TABEL LABA RUGI
-====================== -->
+     LABA RUGI
+    ====================== -->
 
     <div class="section-title">
         Laporan Laba Rugi
@@ -91,124 +95,130 @@
         <tr>
             <td>Total Pemasukan</td>
             <td class="text-right">
-                {{number_format($pemasukan,0,',','.')}}
+                {{ number_format($pemasukan,0,',','.') }}
             </td>
         </tr>
 
         <tr>
             <td>Total Pengeluaran</td>
             <td class="text-right">
-                {{number_format($pengeluaran,0,',','.')}}
+                {{ number_format($pengeluaran,0,',','.') }}
             </td>
         </tr>
 
         <tr>
-
             <th>
-                {{$saldo >= 0 ? 'Laba Bersih' : 'Rugi Bersih'}}
+                {{ $saldo >= 0 ? 'Laba Bersih' : 'Rugi Bersih' }}
             </th>
 
             <th class="text-right">
-                {{number_format(abs($saldo),0,',','.')}}
+                {{ number_format(abs($saldo),0,',','.') }}
             </th>
-
         </tr>
 
     </table>
 
 
-
     <!-- ======================
-     TABEL TRANSAKSI
-====================== -->
+     PEMASUKAN
+    ====================== -->
 
     <div class="section-title">
-        Rincian Transaksi Keuangan
+        Rincian Pemasukan
     </div>
 
     <table>
 
-        <thead>
+        <tr>
+            <th>Sumber</th>
+            <th class="text-right">Jumlah (Rp)</th>
+        </tr>
 
-            <tr>
+        @foreach($detailPemasukan as $key => $items)
+        <tr>
+            <td>{{ $key }}</td>
+            <td class="text-right">
+                {{ number_format($items->sum('jumlah'),0,',','.') }}
+            </td>
+        </tr>
+        @endforeach
 
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Keterangan</th>
-                <th>Jenis</th>
-                <th>Jumlah (Rp)</th>
+        <tr>
+            <th>Total Pemasukan</th>
+            <th class="text-right">
+                {{ number_format($pemasukan,0,',','.') }}
+            </th>
+        </tr>
 
-            </tr>
+    </table>
 
-        </thead>
 
-        <tbody>
+    <!-- ======================
+     PENGELUARAN
+    ====================== -->
 
-            @foreach($data as $index => $row)
+    <div class="section-title">
+        Rincian Pengeluaran
+    </div>
 
-            <tr>
+    <table>
 
-                <td class="text-center">
-                    {{$index+1}}
-                </td>
+        <tr>
+            <th>Keterangan</th>
+            <th class="text-right">Jumlah (Rp)</th>
+        </tr>
 
-                <td>
-                    {{date('d-m-Y', strtotime($row->tanggal))}}
-                </td>
+        @foreach($detailPengeluaran as $key => $items)
+        <tr>
+            <td>{{ $key }}</td>
+            <td class="text-right">
+                {{ number_format($items->sum('jumlah'),0,',','.') }}
+            </td>
+        </tr>
+        @endforeach
 
-                <td>
-                    {{$row->keterangan}}
-                </td>
-
-                <td class="text-center">
-                    {{ucfirst($row->tipe)}}
-                </td>
-
-                <td class="text-right">
-                    {{number_format($row->jumlah,0,',','.')}}
-                </td>
-
-            </tr>
-
-            @endforeach
-
-        </tbody>
+        <tr>
+            <th>Total Pengeluaran</th>
+            <th class="text-right">
+                {{ number_format($pengeluaran,0,',','.') }}
+            </th>
+        </tr>
 
     </table>
 
 
     <!-- ======================
      NARASI
-====================== -->
+    ====================== -->
 
     <p style="margin-top:20px; text-align:justify; font-size:13px;">
 
-        Berdasarkan laporan laba rugi yang disusun dari data transaksi keuangan,
-        diperoleh total pemasukan sebesar
+        Berdasarkan laporan keuangan yang disusun,
+        total pemasukan sebesar
 
         <strong>
-            Rp {{number_format($pemasukan,0,',','.')}}
+            Rp {{ number_format($pemasukan,0,',','.') }}
         </strong>
 
         dan total pengeluaran sebesar
 
         <strong>
-            Rp {{number_format($pengeluaran,0,',','.')}}
+            Rp {{ number_format($pengeluaran,0,',','.') }}
         </strong>.
 
         Dengan demikian, Limasan 514 memperoleh
 
         <strong>
-            {{$saldo >= 0 ? 'laba bersih' : 'rugi bersih'}}
+            {{ $saldo >= 0 ? 'laba bersih' : 'rugi bersih' }}
         </strong>
 
         sebesar
 
         <strong>
-            Rp {{number_format(abs($saldo),0,',','.')}}
+            Rp {{ number_format(abs($saldo),0,',','.') }}
         </strong>
 
-        pada periode tahun {{date('Y')}}.
+        pada periode tersebut.
 
     </p>
 
@@ -223,7 +233,7 @@
 
             <td style="border:none; text-align:center;">
 
-                {{date('d F Y')}} <br>
+                {{ date('d F Y') }} <br>
 
                 Mengetahui,<br><br><br>
 

@@ -3,11 +3,29 @@
 @section('content')
 
 <h4 class="mb-4 fw-bold">Laporan Keuangan</h4>
+<div class="mb-4">
+    <form method="GET" action="{{ route('admin.laporan.pdf') }}" class="d-flex gap-2">
 
-<a href="{{route('admin.laporan.export')}}" class="btn btn-outline-danger mb-3">
-    <i class="fa fa-file-pdf"></i> Export PDF
-</a>
+        <select name="bulan" class="form-select w-auto">
+            <option value="">Semua Bulan</option>
+            @for($i=1;$i<=12;$i++) <option value="{{ $i }}" {{ request('bulan')==$i ? 'selected' : '' }}>
+                {{ date('F', mktime(0,0,0,$i,1)) }}
+                </option>
+                @endfor
+        </select>
 
+        <select name="tahun" class="form-select w-auto">
+            @for($y=2023;$y<=date('Y');$y++) <option value="{{ $y }}" {{ (request('tahun', date('Y'))==$y) ? 'selected'
+                : '' }}>
+                {{ $y }}
+                </option>
+                @endfor
+        </select>
+
+        <button class="btn btn-danger">Export PDF</button>
+
+    </form>
+</div>
 
 <div class="row mb-4">
 

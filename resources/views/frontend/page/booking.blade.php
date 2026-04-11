@@ -66,6 +66,7 @@
                             <input type="text" id="checkout" name="check_out" class="form-control"
                                 placeholder="Tanggal Selesai" required>
                         </div>
+                        <div id="warning_kamar" class="text-danger"></div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Jumlah Tamu</label>
                             <input type="number" class="form-control" name="jumlah_tamu" placeholder="Minimal 1 Orang"
