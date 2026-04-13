@@ -2,38 +2,67 @@
 
 @section('content')
 
-<h3>Data Transaksi</h3>
+<h3 class="mb-3">Input Transaksi</h3>
 
-{{-- FORM TAMBAH TRANSAKSI --}}
-<form action="{{route('admin.transaksi.store')}}" method="POST">
-    @csrf
+{{-- ======================
+FORM TAMBAH TRANSAKSI
+====================== --}}
+<div class="card mb-4">
+    <div class="card-body">
 
-    <input type="date" name="tanggal" class="form-control mb-2" required>
+        <form action="{{route('admin.transaksi.store')}}" method="POST" class="row g-2">
+            @csrf
 
-    <select name="tipe" class="form-control mb-2" required>
-        <option value="">-- Pilih Tipe Transaksi --</option>
-        <option value="pemasukan">Pemasukan</option>
-        <option value="pengeluaran">Pengeluaran</option>
-    </select>
+            <div class="col-md-2">
+                <input type="date" name="tanggal" class="form-control" required>
+            </div>
 
-    <input name="jumlah" class="form-control mb-2" placeholder="Jumlah" required>
+            <div class="col-md-2">
+                <select name="tipe" class="form-control" required>
+                    <option value="">Tipe</option>
+                    <option value="pemasukan">Pemasukan</option>
+                    <option value="pengeluaran">Pengeluaran</option>
+                </select>
+            </div>
 
-    <input name="keterangan" class="form-control mb-2" placeholder="Keterangan">
+            <div class="col-md-2">
+                <input name="jumlah" class="form-control" placeholder="Jumlah" required>
+            </div>
 
-    <button class="btn btn-primary">
-        Simpan Transaksi
-    </button>
+            <div class="col-md-4">
+                <input name="keterangan" class="form-control" placeholder="Keterangan">
+            </div>
 
-</form>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">
+                    Simpan
+                </button>
+            </div>
 
-<hr>
+        </form>
 
-{{-- SEARCH --}}
+    </div>
+</div>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
 
-    <form method="GET" class="d-flex">
+    <form method="GET" class="d-flex flex-wrap gap-2">
 
-        <div class="input-group">
+        {{-- FILTER TIPE --}}
+        <select name="tipe" class="form-select w-auto">
+            <option value="">Semua</option>
+            <option value="pemasukan" {{request('tipe')=='pemasukan' ? 'selected' :''}}>Pemasukan</option>
+            <option value="pengeluaran" {{request('tipe')=='pengeluaran' ? 'selected' :''}}>Pengeluaran</option>
+        </select>
+
+        {{-- TANGGAL DARI --}}
+        <input type="date" name="dari" value="{{request('dari') ?? date('Y-m-d')}}" class="form-control w-auto">
+
+        {{-- TANGGAL SAMPAI --}}
+        <input type="date" name="sampai" value="{{request('sampai') ?? date('Y-m-d')}}" class="form-control w-auto">
+
+        {{-- SEARCH --}}
+        <div class="input-group w-auto">
 
             <span class="input-group-text">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -42,78 +71,89 @@
             <input type="text" name="search" value="{{request('search')}}" class="form-control"
                 placeholder="Cari kode / keterangan...">
 
-            <button class="btn btn-secondary">
-                Cari
-            </button>
-
-            @if(request('search'))
-            <a href="{{route('admin.transaksi')}}" class="btn btn-outline-dark">
-                Reset
-            </a>
-            @endif
-
         </div>
+
+        <button class="btn btn-primary">
+            Filter
+        </button>
+
+        {{-- RESET --}}
+        @if(request()->hasAny(['search','tipe','dari','sampai']))
+        <a href="{{route('admin.transaksi')}}" class="btn btn-outline-dark">
+            Reset
+        </a>
+        @endif
 
     </form>
 
 </div>
 
+{{-- ======================
+TABLE
+====================== --}}
+<div class="card">
+    <div class="card-body p-0">
 
-<table class="table table-bordered">
+        <table class="table table-bordered mb-0">
 
-    <tr>
-        <th>Kode</th>
-        <th>Tanggal</th>
-        <th>Tipe</th>
-        <th>Jumlah</th>
-        <th>Keterangan</th>
-        <th>Aksi</th>
-    </tr>
+            <thead class="table-light">
+                <tr>
+                    <th>Kode</th>
+                    <th>Tanggal</th>
+                    <th>Tipe</th>
+                    <th>Jumlah</th>
+                    <th>Keterangan</th>
+                    <th width="100">Aksi</th>
+                </tr>
+            </thead>
 
-    @foreach($data as $t)
+            <tbody>
+                @forelse($data as $t)
 
-    <tr>
+                <tr>
 
-        <td>{{$t->kode_transaksi}}</td>
+                    <td>{{$t->kode_transaksi}}</td>
 
-        <td>{{$t->tanggal}}</td>
+                    <td>{{date('d-m-Y', strtotime($t->tanggal))}}</td>
 
-        <td>
+                    <td>
+                        @if($t->tipe == 'pemasukan')
+                        <span class="badge bg-success">Pemasukan</span>
+                        @else
+                        <span class="badge bg-danger">Pengeluaran</span>
+                        @endif
+                    </td>
 
-            @if($t->tipe == 'pemasukan')
-            <span class="badge bg-success">Pemasukan</span>
-            @else
-            <span class="badge bg-danger">Pengeluaran</span>
-            @endif
+                    <td>Rp {{number_format($t->jumlah)}}</td>
 
-        </td>
+                    <td>{{$t->keterangan}}</td>
 
-        <td>Rp {{number_format($t->jumlah)}}</td>
+                    <td>
+                        <a href="{{route('admin.transaksi.delete',$t->id)}}" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Hapus transaksi ini?')">
+                            Hapus
+                        </a>
+                    </td>
 
-        <td>{{$t->keterangan}}</td>
+                </tr>
 
-        <td>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center">Tidak ada data</td>
+                </tr>
+                @endforelse
+            </tbody>
 
-            <a href="{{route('admin.transaksi.delete',$t->id)}}" class="btn btn-danger btn-sm"
-                onclick="return confirm('Hapus transaksi ini?')">
-                Hapus
-            </a>
+        </table>
 
-        </td>
+    </div>
+</div>
 
-    </tr>
-
-    @endforeach
-
-</table>
-
-{{-- PAGINATION --}}
-{{$data->links()}}
-
-<br>
-
-<a href="{{route('admin.laporan.pdf')}}" class="btn btn-primary">
-    Export PDF
-</a>
+{{-- ======================
+PAGINATION
+====================== --}}
+<div class="mt-3">
+    {{$data->appends(request()->query())->links()}}
+</div>
 
 @endsection

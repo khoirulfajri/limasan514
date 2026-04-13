@@ -4,23 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Room; // Add this line to import the Room model
-use App\Models\Booking; // Add this line to import the Booking model
-use App\Models\Voucher; // Add this line to import the Voucher model
-use Carbon\Carbon; // Add this line to import the Carbon class
-use Illuminate\Support\Facades\Auth; // Add this line to import the Auth facade
-use Illuminate\Support\Facades\Mail; // Add this line to import the Mail facade
-use App\Mail\BookingInvoice; // Import the BookingInvoice class from the correct namespace
-use Barryvdh\DomPDF\Facade\Pdf; // Add this line to import the PDF facade
+use App\Models\Room;
+use App\Models\Booking;
+use App\Models\Voucher;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BookingInvoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class BookingController extends Controller
 {
-    // mendapatkan tanggal penuh (tidak tersedia)
+    // ======================
+    // GET FULL DATES
+    // ======================
     public function getFullDates()
     {
-        $totalRooms = \App\Models\Room::count() -1; // dikurangi 1 karena kita butuh 1 kamar untuk buffer booking di OTA
+        $totalRooms = Room::count() - 1;
 
-        $bookings = \App\Models\Booking::where('status', '!=', 'cancelled')->get();
+        $bookings = Booking::where('status', '!=', 'cancelled')->get();
 
         $dates = [];
 
@@ -52,13 +54,23 @@ class BookingController extends Controller
         return response()->json($fullDates);
     }
 
-    // Cek ketersediaan kamar
-    public function checkAvailability($checkin, $checkout)
+    // ======================
+    // CHECK AVAILABILITY
+    // ======================
+    public function checkAvailability($checkin, $checkout, $excludeBookingId = null)
     {
-
         $bookedRooms = DB::table('booking_rooms')
             ->join('bookings', 'booking_rooms.booking_id', '=', 'bookings.id')
 
+            // hanya booking aktif
+            ->where('bookings.status', '!=', 'cancelled')
+
+            // EXCLUDE BOOKING SENDIRI
+            ->when($excludeBookingId, function ($query) use ($excludeBookingId) {
+                $query->where('bookings.id', '!=', $excludeBookingId);
+            })
+
+            // LOGIC OVERLAP
             ->where(function ($q) use ($checkin, $checkout) {
 
                 $q->whereBetween('check_in', [$checkin, $checkout])
@@ -75,20 +87,14 @@ class BookingController extends Controller
         return Room::whereNotIn('id', $bookedRooms)->get();
     }
 
-    // Cek voucher
+    // ======================
+    // CEK VOUCHER
+    // ======================
     public function cekVoucher(Request $r)
     {
         $voucher = Voucher::where('kode', $r->kode)->first();
 
-        if (!$voucher) {
-            return response()->json(['status' => false]);
-        }
-
-        if (!$voucher->is_active) {
-            return response()->json(['status' => false]);
-        }
-
-        if ($voucher->expired_at && now()->gt($voucher->expired_at)) {
+        if (!$voucher || !$voucher->is_active || ($voucher->expired_at && now()->gt($voucher->expired_at))) {
             return response()->json(['status' => false]);
         }
 
@@ -99,45 +105,45 @@ class BookingController extends Controller
         ]);
     }
 
-    // Simpan booking
+    // ======================
+    // STORE (KE SESSION)
+    // ======================
     public function store(Request $r)
     {
-        // cek ketersediaan kamar
         $availableRooms = $this->checkAvailability($r->check_in, $r->check_out);
 
         if ($availableRooms->count() < $r->jumlah_kamar) {
             return back()->with('error', 'Kamar tidak tersedia');
         }
 
-        // hitung malam
-        $totalMalam = Carbon::parse($r->check_in)
-            ->diffInDays($r->check_out);
+        $totalMalam = Carbon::parse($r->check_in)->diffInDays($r->check_out);
 
         if ($totalMalam <= 0) {
             return back()->with('error', 'Tanggal tidak valid');
         }
 
-        $harga = 350000;
+        // AMBIL HARGA DARI DB
+        $room = Room::first();
+        if (!$room) {
+            return back()->with('error', 'Data kamar belum tersedia');
+        }
+
+        $harga = $room->harga_per_malam;
 
         $totalHarga = $totalMalam * $harga * $r->jumlah_kamar;
 
         // ======================
-        // VOUCHER LOGIC
+        // VOUCHER
         // ======================
         $diskon = 0;
         $voucher_id = null;
-        $voucher = null;
 
         if ($r->kode_voucher) {
 
             $voucher = Voucher::where('kode', $r->kode_voucher)->first();
 
-            if (!$voucher) {
-                return back()->with('error', 'Voucher tidak ditemukan');
-            }
-
-            if (!$voucher->is_active) {
-                return back()->with('error', 'Voucher tidak aktif');
+            if (!$voucher || !$voucher->is_active) {
+                return back()->with('error', 'Voucher tidak valid');
             }
 
             if ($voucher->expired_at && now()->gt($voucher->expired_at)) {
@@ -152,29 +158,24 @@ class BookingController extends Controller
                 return back()->with('error', 'Minimal transaksi belum terpenuhi');
             }
 
-            // hitung diskon
             if ($voucher->tipe == 'persen') {
                 $diskon = ($voucher->nilai / 100) * $totalHarga;
             } else {
                 $diskon = $voucher->nilai;
             }
 
-            // biar tidak lebih besar dari total
             $diskon = min($diskon, $totalHarga);
-
             $voucher_id = $voucher->id;
         }
 
         $totalAkhir = $totalHarga - $diskon;
 
         // ======================
-        // SIMPAN KE SESSION (BUKAN DB)
+        // SESSION
         // ======================
-        $kodeBooking = 'BK' . time();
-
         session([
             'booking_temp' => [
-                'kode_booking' => $kodeBooking,
+                'kode_booking' => generateKode('BK', 'bookings', 'kode_booking'),
                 'user_id' => Auth::id(),
 
                 'nama' => $r->nama,
@@ -196,13 +197,16 @@ class BookingController extends Controller
 
                 'voucher_id' => $voucher_id,
                 'diskon' => $diskon,
+                'harga_per_malam' => $harga,
             ]
         ]);
-        // redirect ke halaman preview
+
         return redirect('/payment');
     }
 
-    // payment page
+    // ======================
+    // PAYMENT PAGE
+    // ======================
     public function payment()
     {
         $booking = session('booking_temp');
@@ -214,181 +218,120 @@ class BookingController extends Controller
         return view('frontend.page.payment', compact('booking'));
     }
 
-    // confirm booking (pindahkan dari session ke DB)
-
+    // ======================
+    // CONFIRM BOOKING
+    // ======================
     public function confirmBooking(Request $r)
     {
-        // ======================
-        // 🔒 VALIDASI
-        // ======================
         $r->validate([
             'bukti' => 'required|image|mimes:jpg,jpeg,png|max:2048'
         ]);
 
-        // ambil data dari session
-        $data = session('booking_temp');
+        return DB::transaction(function () use ($r) {
 
-        if (!$data) {
-            return redirect('/booking')->with('error', 'Session expired');
-        }
+            $data = session('booking_temp');
 
-        // ======================
-        // 🔥 UPLOAD BUKTI
-        // ======================
-        $bukti = null;
+            if (!$data) {
+                return redirect('/booking')->with('error', 'Session expired');
+            }
 
-        if ($r->hasFile('bukti')) {
+            $availableRooms = $this->checkAvailability($data['check_in'], $data['check_out']);
+
+            if ($availableRooms->count() < $data['jumlah_kamar']) {
+                return redirect('/booking')->with('error', 'Kamar tidak tersedia');
+            }
+
             $bukti = $r->file('bukti')->store('bukti', 'public');
-        }
 
-        // ======================
-        // 🔥 SIMPAN BOOKING
-        // ======================
-        $booking = Booking::create([
-            'kode_booking' => $data['kode_booking'],
-            'user_id' => $data['user_id'],
+            $booking = Booking::create([
+                'kode_booking' => $data['kode_booking'],
+                'user_id' => $data['user_id'],
 
-            'nama' => $data['nama'],
-            'email' => $data['email'],
-            'no_telp' => $data['no_telp'],
-            'jenis_kelamin' => $data['jenis_kelamin'],
+                'nama' => $data['nama'],
+                'email' => $data['email'],
+                'no_telp' => $data['no_telp'],
+                'jenis_kelamin' => $data['jenis_kelamin'],
 
-            'jumlah_tamu' => $data['jumlah_tamu'],
-            'jumlah_kamar' => $data['jumlah_kamar'],
+                'jumlah_tamu' => $data['jumlah_tamu'],
+                'jumlah_kamar' => $data['jumlah_kamar'],
 
-            'check_in' => $data['check_in'],
-            'check_out' => $data['check_out'],
+                'check_in' => $data['check_in'],
+                'check_out' => $data['check_out'],
 
-            'total_malam' => $data['total_malam'],
-            'total_harga' => $data['total_harga'],
+                'total_malam' => $data['total_malam'],
+                'total_harga' => $data['total_harga'],
 
-            'catatan' => $data['catatan'],
-            'sumber' => $data['sumber'],
+                'catatan' => $data['catatan'],
+                'sumber' => $data['sumber'],
 
-            'voucher_id' => $data['voucher_id'],
-            'diskon' => $data['diskon'],
+                'voucher_id' => $data['voucher_id'],
+                'diskon' => $data['diskon'],
 
-            'bukti_pembayaran' => $bukti,
-            'status' => 'pending'
-        ]);
+                'bukti_pembayaran' => $bukti,
 
-        // ======================
-        // 🔥 ASSIGN ROOM
-        // ======================
-        $availableRooms = $this->checkAvailability($data['check_in'], $data['check_out']);
+                'status' => 'pending',
 
-        if ($availableRooms->count() < $data['jumlah_kamar']) {
-            return redirect('/booking')->with('error', 'Kamar sudah tidak tersedia');
-        }
-
-        $rooms = $availableRooms->take($data['jumlah_kamar']);
-
-        foreach ($rooms as $room) {
-            DB::table('booking_rooms')->insert([
-                'booking_id' => $booking->id,
-                'room_id' => $room->id
+                // PAYMENT
+                'metode_pembayaran' => 'transfer',
+                'status_pembayaran' => 'menunggu_verifikasi'
             ]);
-        }
 
-        // ======================
-        // 🔥 UPDATE VOUCHER
-        // ======================
-        if ($data['voucher_id']) {
-            Voucher::where('id', $data['voucher_id'])->increment('digunakan');
-        }
+            $rooms = $availableRooms->take($data['jumlah_kamar']);
 
-        // ======================
-        // 🔥 KIRIM EMAIL
-        // ======================
-        Mail::to($booking->email)
-            ->send(new BookingInvoice($booking));
+            foreach ($rooms as $room) {
+                DB::table('booking_rooms')->insert([
+                    'booking_id' => $booking->id,
+                    'room_id' => $room->id
+                ]);
+            }
 
-        // ======================
-        // 🧹 HAPUS SESSION
-        // ======================
-        session()->forget('booking_temp');
+            if ($data['voucher_id']) {
+                Voucher::where('id', $data['voucher_id'])->increment('digunakan');
+            }
 
-        // ======================
-        // 🚀 REDIRECT
-        // ======================
-        return redirect('/invoice/' . $booking->kode_booking)
-            ->with('success', 'Booking berhasil dibuat, menunggu konfirmasi admin');
+            Mail::to($booking->email)->send(new BookingInvoice($booking));
+
+            session()->forget('booking_temp');
+
+            return redirect('/invoice/' . $booking->kode_booking);
+        });
     }
 
-
-    // upload bukti pembayaran
-    // public function upload(Request $r)
-    // {
-
-    //     $file = $r->file('bukti')->store('bukti', 'public');
-    //     $booking = Booking::where('kode_booking', $r->kode_booking)->firstOrFail();
-    //     $booking->update([
-    //         'bukti_pembayaran' => $file,
-    //         'status' => 'pending'
-    //     ]);
-
-    //     Mail::to($booking->email)
-    //         ->send(new BookingInvoice($booking));
-
-    //     return redirect('/invoice/' . $r->kode_booking);
-    // }
-
-    // invoice page
+    // ======================
+    // INVOICE
+    // ======================
     public function invoice($kode)
     {
-
         $booking = Booking::where('kode_booking', $kode)->firstOrFail();
-
-        return view('frontend.page.invoice', compact('booking'))->with('title', 'Invoice');
+        return view('frontend.page.invoice', compact('booking'));
     }
 
-    // invoice PDf
     public function invoicePdf($kode)
     {
-
         $booking = Booking::where('kode_booking', $kode)->firstOrFail();
 
-        $title = "InvoicePDF";
-
-        $pdf = PDF::loadView('frontend.page.invoice', compact('booking', 'title'));
+        $pdf = PDF::loadView('frontend.page.invoice', compact('booking'));
 
         return $pdf->download('invoice.pdf');
     }
-    
-    // booking page
+
+    // ======================
+    // BOOKING PAGE
+    // ======================
     public function booking()
     {
-        return view('frontend.page.booking', [
-            'title' => 'Booking',
-        ]);
+        $booking = session('booking_temp'); // ambil session
+        $room = Room::first();
+        $harga = $room->harga_per_malam;
+        return view('frontend.page.booking', compact('booking','harga'));
     }
 
-    // Test email
-    public function testEmail()
-    {
-
-        $data = [
-            'nama' => 'Test User',
-            'pesan' => 'Ini adalah email test dari Laravel'
-        ];
-
-        \Illuminate\Support\Facades\Mail::send(
-            'emails.test',
-            $data,
-            function ($message) {
-
-                $message->to('nisfinuril57@gmail.com')
-                    ->subject('Test Email Laravel');
-            }
-        );
-
-        return "Email berhasil dikirim (cek inbox)";
-    }
-
-    // halaman form booking
+    // ======================
+    // CEK BOOKING
+    // ======================
     public function formCekBooking()
     {
-        return view('frontend.page.cek-booking')->with('title', 'Cek Booking');
+        return view('frontend.page.cek-booking');
     }
 
     public function cekBooking(Request $request)
@@ -397,7 +340,7 @@ class BookingController extends Controller
             ->orWhere('email', $request->kode_booking)
             ->first();
 
-        return view('frontend.page.cek-booking', compact('booking'))->with('title', 'Cek Booking');
+        return view('frontend.page.cek-booking', compact('booking'));
     }
 
     // Upload bukti pembayaran
@@ -417,5 +360,14 @@ class BookingController extends Controller
         $booking->save();
 
         return back()->with('success', 'Bukti pembayaran berhasil diupload');
+    }
+    // Cek ketersediaan kamar (AJAX)
+    public function cekKamar(Request $r)
+    {
+        $available = $this->checkAvailability($r->checkin, $r->checkout);
+
+        return response()->json([
+            'sisa' => $available->count()
+        ]);
     }
 }

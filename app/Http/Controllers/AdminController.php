@@ -7,24 +7,28 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon; // Add this line to import the Carbon class
-use App\Mail\BookingConfirmedMail; // Add this line to import the BookingConfirmedMail class
-use App\Models\User; // Add this line to import the User model
-use App\Models\Booking; // Add this line to import the Booking model
-use App\Models\Finance; // Add this line to import the Finance model
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+use App\Mail\BookingConfirmedMail;
+use App\Models\User;
+use App\Models\Booking;
+use App\Models\Finance;
+use App\Models\Room;
 
 class AdminController extends Controller
 {
+    // ======================
+    // DASHBOARD
+    // ======================
     public function dashboard()
     {
-
         $totalUser = User::count();
         $totalBooking = Booking::count();
         $totalPemasukan = Finance::where('tipe', 'pemasukan')->sum('jumlah');
         $totalPengeluaran = Finance::where('tipe', 'pengeluaran')->sum('jumlah');
         $saldo = $totalPemasukan - $totalPengeluaran;
 
-        $dataSumber = \App\Models\Booking::select('sumber', DB::raw('count(*) as total'))
+        $dataSumber = Booking::select('sumber', DB::raw('count(*) as total'))
             ->groupBy('sumber')
             ->pluck('total', 'sumber');
 
@@ -41,18 +45,17 @@ class AdminController extends Controller
         ));
     }
 
-    // halaman User
+    // ======================
+    // USER
+    // ======================
     public function users()
     {
         $users = User::latest()->get();
-
         return view('admin.users', compact('users'));
     }
 
-
     public function storeUser(Request $request)
     {
-
         User::create([
             'nama' => $request->nama,
             'email' => $request->email,
@@ -62,46 +65,42 @@ class AdminController extends Controller
             'password' => Hash::make($request->password)
         ]);
 
-        return redirect()->back()->with('success', 'User berhasil ditambah');
+        return back()->with('success', 'User berhasil ditambah');
     }
-
 
     public function updateUser(Request $request, $id)
     {
-
         $user = User::findOrFail($id);
 
-        $user->nama = $request->nama;
-        $user->email = $request->email;
-        $user->no_telp = $request->no_telp;
-        $user->jenis_kelamin = $request->jenis_kelamin;
-        $user->role = $request->role;
+        $user->update([
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'no_telp' => $request->no_telp,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'role' => $request->role
+        ]);
 
         if ($request->password) {
             $user->password = Hash::make($request->password);
+            $user->save();
         }
 
-        $user->save();
-
-        return redirect()->back()->with('success', 'User berhasil diubah');
+        return back()->with('success', 'User berhasil diubah');
     }
-
 
     public function deleteUser($id)
     {
-
         User::findOrFail($id)->delete();
-
-        return redirect()->back()->with('success', 'User berhasil dihapus');
+        return back()->with('success', 'User berhasil dihapus');
     }
 
-
-    // Halaman Booking
+    // ======================
+    // BOOKINGS
+    // ======================
     public function bookings(Request $request)
     {
         $query = Booking::query();
 
-        // FILTER SUMBER
         if ($request->has('sumber') && $request->sumber != '') {
             $query->where('sumber', $request->sumber);
         }
@@ -124,195 +123,344 @@ class AdminController extends Controller
             $warning = "⚠️ Kamar mulai menipis! Sisa {$sisaKamar}";
         }
 
-        return view('admin.bookings', compact('bookings', 'warning', 'sisaKamar'))
-            ->with('title', 'Bookings');
+        return view('admin.bookings', compact('bookings', 'warning', 'sisaKamar'));
     }
 
-    // update Status Booking otomatis masuk ke pemasukan
+    // ======================
+    // CONFIRM BOOKING (MASUK FINANCE)
+    // ======================
     public function confirmBooking($id)
     {
-
         $booking = Booking::findOrFail($id);
 
-        //  cegah double confirm
         if ($booking->status === 'confirmed') {
             return back()->with('error', 'Booking sudah dikonfirmasi');
         }
 
-        //  update status
-        $booking->update([
-            'status' => 'confirmed'
-        ]);
+        DB::transaction(function () use ($booking) {
 
-        //  kirim email
-        Mail::to($booking->email)
-            ->send(new BookingConfirmedMail($booking));
+            $booking->update([
+                'status' => 'confirmed',
+                'status_pembayaran' => 'lunas',
+                'tanggal_pembayaran' => now()
+            ]);
 
-        Finance::create([
+            // 🔥 CEGAH DOUBLE FINANCE
+            $exists = Finance::where('booking_id', $booking->id)->exists();
 
-            'kode_transaksi' => 'INC' . time(),
+            if (!$exists) {
+                Finance::create([
+                    'kode_transaksi' => generateKode('INC', 'finances', 'kode_transaksi'),
+                    'tipe' => 'pemasukan',
+                    'jumlah' => $booking->total_harga,
+                    'keterangan' => 'Booking ' . $booking->kode_booking,
+                    'tanggal' => now(),
+                    'booking_id' => $booking->id,
+                    'sumber' => $booking->sumber
+                ]);
+            }
 
-            'tipe' => 'pemasukan',
-
-            'jumlah' => $booking->total_harga,
-
-            'keterangan' => 'Pembayaran booking ' . $booking->kode_booking,
-
-            'tanggal' => now(),
-
-            'booking_id' => $booking->id
-
-        ]);
+            Mail::to($booking->email)
+                ->send(new BookingConfirmedMail($booking));
+        });
 
         return back()->with('success', 'Booking berhasil dikonfirmasi');
     }
 
-    // Tambah Booking
+    // ======================
+    // tambah data BOOKING ADMIN
+    // ======================
     public function storeBooking(Request $request)
     {
-        // ======================
-        // 🔒 VALIDASI
-        // ======================
-        $request->validate([
-            'nama' => 'required',
-            'email' => 'required|email',
-            'no_telp' => 'required',
-            'jumlah_kamar' => 'required|numeric|min:1',
-            'check_in' => 'required|date',
-            'check_out' => 'required|date|after:check_in',
-            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot',
-            'bukti_pembayaran' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-        ]);
+        return DB::transaction(function () use ($request) {
 
-        // ======================
-        // 🔥 UPLOAD BUKTI
-        // ======================
-        $bukti = null;
-
-        if ($request->hasFile('bukti_pembayaran')) {
-            $bukti = $request->file('bukti_pembayaran')->store('bukti', 'public');
-        }
-
-        // ======================
-        // 🔥 HITUNG TOTAL
-        // ======================
-        $totalMalam = Carbon::parse($request->check_in)
-            ->diffInDays($request->check_out);
-
-        $harga = 350000;
-
-        $totalHarga = $totalMalam * $harga * $request->jumlah_kamar;
-
-        // ======================
-        // 🔥 SIMPAN BOOKING
-        // ======================
-        $booking = Booking::create([
-
-            'kode_booking' => 'BK' . time(),
-
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'no_telp' => $request->no_telp,
-            'jenis_kelamin' => $request->jenis_kelamin,
-
-            'jumlah_tamu' => $request->jumlah_tamu,
-            'jumlah_kamar' => $request->jumlah_kamar,
-
-            'check_in' => $request->check_in,
-            'check_out' => $request->check_out,
-
-            'total_malam' => $totalMalam,
-            'total_harga' => $totalHarga,
-
-            'catatan' => $request->catatan,
-            'sumber' => $request->sumber ?? 'website',
-
-            'bukti_pembayaran' => $bukti,
-
-            'status' => $request->sumber != 'website' ? 'confirmed' : 'pending'
-        ]);
-
-        // ======================
-        // 🔥 ASSIGN ROOM (WAJIB)
-        // ======================
-        $availableRooms = app(\App\Http\Controllers\BookingController::class)
-            ->checkAvailability($request->check_in, $request->check_out);
-
-        if ($availableRooms->count() < $request->jumlah_kamar) {
-            return back()->with('error', 'Kamar tidak cukup');
-        }
-
-        $rooms = $availableRooms->take($request->jumlah_kamar);
-
-        foreach ($rooms as $room) {
-            DB::table('booking_rooms')->insert([
-                'booking_id' => $booking->id,
-                'room_id' => $room->id
+            $request->validate([
+                'nama' => 'required',
+                'check_in' => 'required|date',
+                'check_out' => 'required|date|after:check_in',
+                'jumlah_kamar' => 'required|numeric|min:1'
             ]);
-        }
 
-        return back()->with('success', 'Booking berhasil ditambahkan');
+            // CEK KETERSEDIAAN
+            $availableRooms = app(BookingController::class)
+                ->checkAvailability($request->check_in, $request->check_out);
+
+            if ($availableRooms->count() < $request->jumlah_kamar) {
+                return back()->with('error', 'Kamar tidak cukup');
+            }
+
+            // HITUNG TOTAL
+            $totalMalam = Carbon::parse($request->check_in)
+                ->diffInDays($request->check_out);
+
+            $room = Room::first();
+            if (!$room) {
+                return back()->with('error', 'Data kamar belum tersedia');
+            }
+
+            $harga = $room->harga_per_malam;
+            $totalHarga = $totalMalam * $harga * $request->jumlah_kamar;
+
+            $bukti = null;
+
+            if ($request->hasFile('bukti_pembayaran')) {
+
+                $file = $request->file('bukti_pembayaran');
+
+                $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
+
+                $file->storeAs('public', $namaFile);
+
+                $bukti = $namaFile;
+            }
+
+            // SIMPAN BOOKING
+            $booking = Booking::create([
+                'kode_booking' => generateKode('BK', 'bookings', 'kode_booking'),
+
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'no_telp' => $request->no_telp,
+                'jenis_kelamin' => $request->jenis_kelamin,
+
+                'jumlah_tamu' => $request->jumlah_tamu,
+                'jumlah_kamar' => $request->jumlah_kamar,
+
+                'check_in' => $request->check_in,
+                'check_out' => $request->check_out,
+
+                'total_malam' => $totalMalam,
+                'total_harga' => $totalHarga,
+
+                'catatan' => $request->catatan,
+                'sumber' => $request->sumber ?? 'website',
+
+                'status' => $request->sumber != 'website' ? 'confirmed' : 'pending',
+
+                'metode_pembayaran' => $request->metode_pembayaran ?? 'cash',
+                'status_pembayaran' => $request->status_pembayaran ?? 'lunas',
+                'bukti_pembayaran' => $bukti,
+            ]);
+
+            // ASSIGN ROOM
+            $rooms = $availableRooms->take($request->jumlah_kamar);
+
+            foreach ($rooms as $room) {
+                DB::table('booking_rooms')->insert([
+                    'booking_id' => $booking->id,
+                    'room_id' => $room->id
+                ]);
+            }
+
+            // FINANCE (JIKA LUNAS)
+            if ($booking->status_pembayaran == 'lunas') {
+                Finance::create([
+                    'kode_transaksi' => generateKode('INC', 'finances', 'kode_transaksi'),
+                    'tipe' => 'pemasukan',
+                    'jumlah' => $booking->total_harga,
+                    'keterangan' => 'Booking ' . $booking->kode_booking,
+                    'tanggal' => now(),
+                    'booking_id' => $booking->id,
+                    'sumber' => $booking->sumber
+                ]);
+            }
+            // EMAIL
+            if (!in_array($booking->sumber, ['booking.com', 'agoda', 'tiket.com'])) {
+                try {
+                    Mail::to($booking->email)
+                        ->send(new BookingConfirmedMail($booking));
+                } catch (\Exception $e) {
+                    // optional log
+                }
+            }
+
+            return back()->with('success', 'Booking berhasil ditambahkan');
+        });
     }
 
-    // ubah Booking
+    // ======================
+    // UPDATE BOOKING
+    // ======================
     public function updateBooking(Request $request, $id)
     {
+        return DB::transaction(function () use ($request, $id) {
 
-        $booking = Booking::findOrFail($id);
+            $booking = Booking::findOrFail($id);
 
-        $request->validate([
-            'sumber' => 'nullable|in:website,booking.com,agoda,tiket.com,on_the_spot'
-        ]);
+            $request->validate([
+                'check_in' => 'required|date',
+                'check_out' => 'required|date|after:check_in',
+                'jumlah_kamar' => 'required|numeric|min:1'
+            ]);
 
-        $booking->update([
+            // 🔥 CEK KETERSEDIAAN
+            $availableRooms = app(BookingController::class)
+                ->checkAvailability($request->check_in, $request->check_out, $booking->id);
 
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'no_telp' => $request->no_telp,
-            'jenis_kelamin' => $request->jenis_kelamin,
+            if ($availableRooms->count() < $request->jumlah_kamar) {
+                return back()->with('error', 'Kamar tidak cukup');
+            }
 
-            'jumlah_tamu' => $request->jumlah_tamu,
-            'jumlah_kamar' => $request->jumlah_kamar,
+            // 🔥 HITUNG ULANG
+            $totalMalam = Carbon::parse($request->check_in)
+                ->diffInDays($request->check_out);
 
-            'check_in' => $request->check_in,
-            'check_out' => $request->check_out,
+            $room = Room::first();
 
-            'total_malam' => $request->total_malam,
-            'total_harga' => $request->total_harga,
+            if (!$room) {
+                return back()->with('error', 'Data kamar belum tersedia');
+            }
 
-            'catatan' => $request->catatan,
-            'sumber' => $request->sumber ?? 'website'
+            $harga = $room->harga_per_malam;
+            $totalHarga = $totalMalam * $harga * $request->jumlah_kamar;
 
-        ]);
+            $bukti = $booking->bukti_pembayaran;
 
-        return back()->with('success', 'Booking berhasil diupdate');
+            if ($request->hasFile('bukti_pembayaran')) {
+
+                // hapus file lama (opsional tapi bagus)
+                if ($booking->bukti_pembayaran && Storage::exists('public/' . $booking->bukti_pembayaran)) {
+                    Storage::delete('public/' . $booking->bukti_pembayaran);
+                }
+
+                $file = $request->file('bukti_pembayaran');
+                $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
+                $file->storeAs('public', $namaFile);
+
+                $bukti = $namaFile;
+            }
+
+            // 🔥 UPDATE BOOKING
+            $booking->update([
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'no_telp' => $request->no_telp,
+                'jenis_kelamin' => $request->jenis_kelamin,
+
+                'jumlah_tamu' => $request->jumlah_tamu,
+                'jumlah_kamar' => $request->jumlah_kamar,
+
+                'check_in' => $request->check_in,
+                'check_out' => $request->check_out,
+
+                'total_malam' => $totalMalam,
+                'total_harga' => $totalHarga,
+
+                'catatan' => $request->catatan,
+                'sumber' => $request->sumber ?? 'website',
+
+                'bukti_pembayaran' => $bukti,
+
+                'metode_pembayaran' => $request->metode_pembayaran ?? 'transfer',
+                'status_pembayaran' => $request->status_pembayaran ?? 'menunggu_verifikasi',
+            ]);
+
+            // 🔥 UPDATE ROOM RELATION
+            DB::table('booking_rooms')->where('booking_id', $booking->id)->delete();
+
+            $rooms = $availableRooms->take($request->jumlah_kamar);
+
+            foreach ($rooms as $room) {
+                DB::table('booking_rooms')->insert([
+                    'booking_id' => $booking->id,
+                    'room_id' => $room->id
+                ]);
+            }
+
+            // ======================
+            // 🔥 SYNC FINANCE
+            // ======================
+            $finance = Finance::where('booking_id', $booking->id)->first();
+
+            if ($request->status_pembayaran != 'lunas') {
+
+                if ($finance) {
+                    $finance->delete();
+                }
+            } else {
+
+                if ($finance) {
+                    $finance->update([
+                        'jumlah' => $totalHarga,
+                        'keterangan' => 'Booking ' . $booking->kode_booking,
+                        'tanggal' => now(),
+                        'sumber' => $booking->sumber
+                    ]);
+                } else {
+                    Finance::create([
+                        'kode_transaksi' => generateKode('INC', 'finances', 'kode_transaksi'),
+                        'tipe' => 'pemasukan',
+                        'jumlah' => $totalHarga,
+                        'keterangan' => 'Booking ' . $booking->kode_booking,
+                        'tanggal' => now(),
+                        'booking_id' => $booking->id,
+                        'sumber' => $booking->sumber
+                    ]);
+                }
+            }
+
+            return redirect()->route('admin.bookings')
+                ->with('success', 'Booking berhasil diupdate');
+        });
     }
 
-    // hapus Booking
+    // ======================
+    // HALAMAN FORM BOOKING (BUAT & EDIT)
+    // ======================
+    public function formBooking($id = null)
+    {
+        $booking = $id ? Booking::findOrFail($id) : null;
+
+        $room = \App\Models\Room::first();
+        $harga = $room ? $room->harga_per_malam : 0;
+
+        return view('admin.booking_form', compact('booking', 'harga'));
+    }
+    // ======================
+    // CANCEL BOOKING (GANTI DELETE)
+    // ======================
     public function deleteBooking($id)
     {
+        Booking::findOrFail($id)->update([
+            'status' => 'cancelled'
+        ]);
 
-        Booking::findOrFail($id)->delete();
-
-        return back()->with('success', 'Booking berhasil dihapus');
+        return back()->with('success', 'Booking dibatalkan');
     }
 
-    // Halaman Transaksi
+    // ======================
+    // TRANSAKSI
+    // ======================
     public function transaksi(Request $request)
     {
-
         $query = Finance::query();
 
+        // SEARCH
         if ($request->search) {
-            $query->where('kode_transaksi', 'like', '%' . $request->search . '%')
-                ->orWhere('keterangan', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('kode_transaksi', 'like', '%' . $request->search . '%')
+                    ->orWhere('keterangan', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // FILTER TIPE
+        if ($request->tipe && in_array($request->tipe, ['pemasukan', 'pengeluaran'])) {
+            $query->where('tipe', $request->tipe);
+        }
+
+        // FILTER TANGGAL
+        if ($request->dari && $request->sampai) {
+            $query->whereBetween('tanggal', [$request->dari, $request->sampai]);
+        } elseif ($request->dari) {
+            $query->whereDate('tanggal', '>=', $request->dari);
+        } elseif ($request->sampai) {
+            $query->whereDate('tanggal', '<=', $request->sampai);
         }
 
         $data = $query->latest()->paginate(10);
 
         $pemasukan = Finance::where('tipe', 'pemasukan')->sum('jumlah');
         $pengeluaran = Finance::where('tipe', 'pengeluaran')->sum('jumlah');
-
         $saldo = $pemasukan - $pengeluaran;
 
         return view('admin.transaksi', compact(
@@ -320,10 +468,9 @@ class AdminController extends Controller
             'pemasukan',
             'pengeluaran',
             'saldo'
-        ))->with('title', 'Transaksi');
+        ));
     }
 
-    // hapus data Transaksi
     public function deleteTransaksi($id)
     {
         Finance::findOrFail($id)->delete();
@@ -332,60 +479,31 @@ class AdminController extends Controller
 
     public function storeTransaksi(Request $request)
     {
-
         $kode = $request->tipe == 'pemasukan' ? 'INC' : 'EXP';
 
         Finance::create([
-
-            'kode_transaksi' => $kode . time(),
-
+            'kode_transaksi' => generateKode($kode, 'finances', 'kode_transaksi'),
             'tipe' => $request->tipe,
-
             'jumlah' => $request->jumlah,
-
             'keterangan' => $request->keterangan,
-
             'tanggal' => $request->tanggal
-
         ]);
 
         return back()->with('success', 'Transaksi berhasil ditambahkan');
     }
 
-    // tambah Pengeluaran
-    public function storePengeluaran(Request $request)
-    {
-
-        Finance::create([
-
-            'kode_transaksi' => 'OUT' . time(),
-
-            'tipe' => 'pengeluaran',
-
-            'jumlah' => $request->jumlah,
-
-            'keterangan' => $request->keterangan,
-
-            'tanggal' => $request->tanggal
-
-        ]);
-
-        return back()->with('success', 'Pengeluaran berhasil ditambahkan');
-    }
-
-    // Laporan Keuangan
+    // ======================
+    // LAPORAN
+    // ======================
     public function laporan()
     {
-
         $data = Finance::latest()->get();
 
         $pemasukan = Finance::where('tipe', 'pemasukan')->sum('jumlah');
-
         $pengeluaran = Finance::where('tipe', 'pengeluaran')->sum('jumlah');
-
         $saldo = $pemasukan - $pengeluaran;
 
-        // grafik bulanan
+        // 🔥 GRAFIK BULANAN (BALIKIN)
         $grafik = Finance::select(
             DB::raw('MONTH(tanggal) as bulan'),
             DB::raw("SUM(CASE WHEN tipe='pemasukan' THEN jumlah ELSE 0 END) as pemasukan"),
@@ -416,7 +534,6 @@ class AdminController extends Controller
         ];
 
         foreach ($grafik as $g) {
-
             $bulan[] = $namaBulan[$g->bulan];
             $dataPemasukan[] = $g->pemasukan;
             $dataPengeluaran[] = $g->pengeluaran;
@@ -433,49 +550,46 @@ class AdminController extends Controller
         ));
     }
 
-    // export Laporan PDF
     public function exportPDF(Request $r)
     {
         $query = Finance::query();
 
+        // ======================
+        // FILTER BULAN
+        // ======================
         if ($r->bulan) {
             $query->whereMonth('tanggal', $r->bulan);
         }
 
+        // ======================
+        // FILTER TAHUN
+        // ======================
         if ($r->tahun) {
             $query->whereYear('tanggal', $r->tahun);
         }
 
-        $data = $query->get();
+        // ======================
+        // AMBIL DATA + URUTKAN
+        // ======================
+        $data = $query->orderBy('tanggal', 'asc')->get();
 
         // ======================
-        // PEMASUKAN
+        // HITUNG TOTAL
         // ======================
         $pemasukan = $data->where('tipe', 'pemasukan')->sum('jumlah');
-
-        // detail pemasukan (per keterangan)
-        $detailPemasukan = $data->where('tipe', 'pemasukan')
-            ->groupBy('keterangan');
-
-        // ======================
-        // PENGELUARAN
-        // ======================
         $pengeluaran = $data->where('tipe', 'pengeluaran')->sum('jumlah');
-
-        $detailPengeluaran = $data->where('tipe', 'pengeluaran')
-            ->groupBy('keterangan');
-
         $saldo = $pemasukan - $pengeluaran;
 
-        $pdf = \PDF::loadView('admin.laporan_pdf', compact(
+        // ======================
+        // GENERATE PDF
+        // ======================
+        $pdf = Pdf::loadView('admin.laporan_pdf', compact(
+            'data',
             'pemasukan',
             'pengeluaran',
-            'saldo',
-            'detailPemasukan',
-            'detailPengeluaran',
-            'r'
+            'saldo'
         ));
 
-        return $pdf->stream();
+        return $pdf->stream('laporan-keuangan.pdf');
     }
 }

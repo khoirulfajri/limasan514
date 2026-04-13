@@ -14,11 +14,31 @@ class RoomSeeder extends Seeder
     public function run(): void
     {
         DB::table('rooms')->insert([
-            ['nomor_kamar' => '1', 'lantai' => 1],
-            ['nomor_kamar' => '2', 'lantai' => 1],
-            ['nomor_kamar' => '3', 'lantai' => 2],
-            ['nomor_kamar' => '4', 'lantai' => 2],
-            ['nomor_kamar' => '5', 'lantai' => 2],
+            [
+                'nomor_kamar' => '1',
+                'lantai' => 1,
+                'harga_per_malam' => 350000
+            ],
+            [
+                'nomor_kamar' => '2',
+                'lantai' => 1,
+                'harga_per_malam' => 350000
+            ],
+            [
+                'nomor_kamar' => '3',
+                'lantai' => 2,
+                'harga_per_malam' => 350000
+            ],
+            [
+                'nomor_kamar' => '4',
+                'lantai' => 2,
+                'harga_per_malam' => 350000
+            ],
+            [
+                'nomor_kamar' => '5',
+                'lantai' => 2,
+                'harga_per_malam' => 350000
+            ],
         ]);
     }
 }

@@ -33,7 +33,7 @@
             <div class="col-md-5 col-12 py-5 px-4">
                 <div class="card card-booking p-4 shadow-lg rounded-4">
                     <h3 class="mb-4 fw-bold text-center text-danger py-3">Booking</h3>
-                    <form method="POST" action="/booking/store">
+                    <form method="POST" action="/booking/store" onsubmit="return validasiKamar()">
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Nama Lengkap</label>
@@ -101,35 +101,42 @@
             </div>
         </div>
     </div>
+    <input type="hidden" id="harga_per_malam" value="{{ $harga }}">
 </section>
 
-{{-- hitung harga --}}
 <script>
-    const hargaPerMalam = 350000;
-    
+    const hargaPerMalam = parseInt(document.getElementById("harga_per_malam").value) || 0;
+
+    let lastAlert = false;
+
+    // ======================
+    // HITUNG HARGA
+    // ======================
     async function hitungHarga(){
+
         let checkin = document.getElementById("checkin").value
         let checkout = document.getElementById("checkout").value
         let kamar = document.getElementById("jumlah_kamar").value
         let kode = document.querySelector("input[name=kode_voucher]").value
         let info = document.getElementById("voucher_info")
-    
+
         if(checkin && checkout && kamar){
+
             let t1 = new Date(checkin)
             let t2 = new Date(checkout)
-            let selisih = (t2 - t1) / (1000*60*60*24) 
-            // konversi dari milidetik ke hari 1000(1 detik) * 60 (1 menit) * 60 (1 jam) * 24 (1 hari)
-            // jadi (1000*60*60*24) adalah 1 hari dalam milidetik
-    
+
+            let selisih = (t2 - t1) / (1000*60*60*24)
+
             if(selisih > 0){
+
                 let total = selisih * hargaPerMalam * kamar
-    
+
                 let diskon = 0
-    
+
                 if(kode){
                     let res = await fetch(`/cek-voucher?kode=${kode}`)
                     let data = await res.json()
-    
+
                     if(data.status){
                         if(data.tipe === 'persen'){
                             diskon = total * (data.nilai / 100)
@@ -137,6 +144,7 @@
                             diskon = data.nilai
                         }
                     }
+
                     if(data.status){
                         info.innerHTML = "✅ Voucher valid"
                         info.style.color = "green"
@@ -145,11 +153,11 @@
                         info.style.color = "red"
                     }
                 }
-    
+
                 diskon = Math.min(diskon, total)
-    
+
                 let totalAkhir = total - diskon
-    
+
                 document.getElementById("total_malam").innerHTML = selisih
                 document.getElementById("diskon").innerHTML =
                     "Rp " + diskon.toLocaleString()
@@ -158,17 +166,81 @@
             }
         }
     }
+
+    // ======================
+    // CEK KAMAR (ALERT)
+    // ======================
+    async function cekKamarAlert(){
+
+        let checkin = document.getElementById("checkin").value
+        let checkout = document.getElementById("checkout").value
+        let kamar = document.getElementById("jumlah_kamar").value
+
+        if(checkin && checkout){
+
+            let res = await fetch(`/cek-kamar?checkin=${checkin}&checkout=${checkout}`)
+            let data = await res.json()
+
+            if(data.sisa < kamar){
+
+                if(!lastAlert){
+                    alert(`Kamar tidak cukup! Sisa hanya ${data.sisa}`)
+                    lastAlert = true
+                }
+
+            } else {
+                lastAlert = false
+            }
+        }
+    }
+
+    // ======================
+    // VALIDASI SUBMIT
+    // ======================
+    async function validasiKamar(){
+
+        let checkin = document.getElementById("checkin").value
+        let checkout = document.getElementById("checkout").value
+        let kamar = document.getElementById("jumlah_kamar").value
+
+        let res = await fetch(`/cek-kamar?checkin=${checkin}&checkout=${checkout}`)
+        let data = await res.json()
+
+        if(data.sisa < kamar){
+            alert(`Booking gagal! Sisa kamar hanya ${data.sisa}`)
+            return false
+        }
+
+        return true
+    }
+
+    // ======================
+    // EVENT
+    // ======================
     let timeout;
-    
+
     document.querySelector("input[name=kode_voucher]").addEventListener("input", () => {
-    clearTimeout(timeout)
-    timeout = setTimeout(hitungHarga, 500)
-})
-    
-    document.getElementById("checkin").addEventListener("change", hitungHarga)
-    document.getElementById("checkout").addEventListener("change", hitungHarga)
-    document.getElementById("jumlah_kamar").addEventListener("input", hitungHarga)
+        clearTimeout(timeout)
+        timeout = setTimeout(hitungHarga, 500)
+    })
+
+    document.getElementById("checkin").addEventListener("change", () => {
+        hitungHarga()
+        cekKamarAlert()
+    })
+
+    document.getElementById("checkout").addEventListener("change", () => {
+        hitungHarga()
+        cekKamarAlert()
+    })
+
+    document.getElementById("jumlah_kamar").addEventListener("input", () => {
+        hitungHarga()
+        cekKamarAlert()
+    })
+
     document.querySelector("input[name=kode_voucher]").addEventListener("input", hitungHarga)
+
 </script>
 
 @endsection

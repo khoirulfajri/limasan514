@@ -2,7 +2,7 @@
 
 @section('content')
 
-<h4 class="mb-4 fw-bold">Laporan Keuangan</h4>
+<h4 class="mb-4 fw-bold">Laporan</h4>
 <div class="mb-4">
     <form method="GET" action="{{ route('admin.laporan.pdf') }}" class="d-flex gap-2">
 
@@ -170,24 +170,6 @@
     </table>
 
 </div>
-
-
-<div class="card p-4">
-
-    <h5>Analisis Keuangan</h5>
-
-    <ul>
-
-        <li>Total pemasukan tahun ini sebesar <b>Rp {{number_format($pemasukan)}}</b></li>
-
-        <li>Total pengeluaran sebesar <b>Rp {{number_format($pengeluaran)}}</b></li>
-
-        <li>Saldo keuangan saat ini adalah <b>Rp {{number_format($saldo)}}</b></li>
-
-    </ul>
-
-</div>
-
 
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

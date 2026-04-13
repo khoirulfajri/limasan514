@@ -5,6 +5,7 @@
 <div class="row mt-5 justify-content-center">
 
     <div class="col-md-6 mt-5">
+
         <div class="card p-4">
             <h4 class="fw-bold text-center text-white py-2 bg-danger rounded">Detail Pembayaran</h4>
             <hr>
@@ -60,6 +61,10 @@
                 <label>Upload Bukti Pembayaran</label>
                 <input type="file" class="form-control mb-3" name="bukti" required>
                 <span class="fs-6 fst-italic">(JPG, PNG max 25Mb)</span>
+
+                <a href="/booking" class="btn btn-secondary w-100 mb-2">
+                    ← Ubah Data Booking
+                </a>
 
                 <button class="btn btn-danger w-100">
                     Konfirmasi Booking

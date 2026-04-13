@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Keuangan</title>
+    <title>Laporan Laba Rugi</title>
 
     <style>
         body {
@@ -63,15 +63,14 @@
 
 <body>
 
-    <h2>LAPORAN KEUANGAN</h2>
+    <h2>LAPORAN LABA RUGI</h2>
     <h3>Limasan 514</h3>
 
     <p class="text-center">
-        Periode
         @if(request('bulan'))
-        {{ date('F', mktime(0,0,0,request('bulan'),1)) }} {{ request('tahun') }}
+        Periode {{ date('F', mktime(0,0,0,request('bulan'),1)) }} {{ request('tahun') }}
         @else
-        Tahun {{ request('tahun') ?? date('Y') }}
+        per 31 Desember {{ request('tahun') ?? date('Y') }}
         @endif
     </p>
 
@@ -88,99 +87,83 @@
     <table>
 
         <tr>
+            <th class="text-center">Tanggal</th>
             <th>Keterangan</th>
-            <th class="text-right">Jumlah (Rp)</th>
+            <th class="text-right">Pemasukan (Rp)</th>
+            <th class="text-right">Pengeluaran (Rp)</th>
         </tr>
 
+        {{-- ======================
+        PEMASUKAN
+        ====================== --}}
+        @php $totalPemasukan = 0; @endphp
+
+        @foreach($data->where('tipe','pemasukan') as $row)
         <tr>
-            <td>Total Pemasukan</td>
+            <td class="text-center">
+                {{ date('d-m-Y', strtotime($row->tanggal)) }}
+            </td>
+            <td>{{ $row->keterangan }}</td>
             <td class="text-right">
-                {{ number_format($pemasukan,0,',','.') }}
+                {{ number_format($row->jumlah,0,',','.') }}
+            </td>
+            <td>-</td>
+        </tr>
+
+        @php $totalPemasukan += $row->jumlah; @endphp
+        @endforeach
+
+        <tr>
+            <th colspan="2">Total Pemasukan</th>
+            <th class="text-right">
+                {{ number_format($totalPemasukan,0,',','.') }}
+            </th>
+            <th></th>
+        </tr>
+
+
+        {{-- ======================
+        PENGELUARAN
+        ====================== --}}
+        @php $totalPengeluaran = 0; @endphp
+
+        @foreach($data->where('tipe','pengeluaran') as $row)
+        <tr>
+            <td class="text-center">
+                {{ date('d-m-Y', strtotime($row->tanggal)) }}
+            </td>
+            <td>{{ $row->keterangan }}</td>
+            <td>-</td>
+            <td class="text-right">
+                ({{ number_format($row->jumlah,0,',','.') }})
             </td>
         </tr>
 
-        <tr>
-            <td>Total Pengeluaran</td>
-            <td class="text-right">
-                {{ number_format($pengeluaran,0,',','.') }}
-            </td>
-        </tr>
+        @php $totalPengeluaran += $row->jumlah; @endphp
+        @endforeach
 
         <tr>
-            <th>
+            <th colspan="2">Total Pengeluaran</th>
+            <th></th>
+            <th class="text-right">
+                ({{ number_format($totalPengeluaran,0,',','.') }})
+            </th>
+        </tr>
+
+
+        {{-- ======================
+        LABA / RUGI
+        ====================== --}}
+        @php
+        $saldo = $totalPemasukan - $totalPengeluaran;
+        @endphp
+
+        <tr style="background: #ffff00;">
+            <th colspan="2">
                 {{ $saldo >= 0 ? 'Laba Bersih' : 'Rugi Bersih' }}
             </th>
-
-            <th class="text-right">
+            <th colspan="2" class="text-right">
                 {{ number_format(abs($saldo),0,',','.') }}
-            </th>
-        </tr>
-
-    </table>
-
-
-    <!-- ======================
-     PEMASUKAN
-    ====================== -->
-
-    <div class="section-title">
-        Rincian Pemasukan
-    </div>
-
-    <table>
-
-        <tr>
-            <th>Sumber</th>
-            <th class="text-right">Jumlah (Rp)</th>
-        </tr>
-
-        @foreach($detailPemasukan as $key => $items)
-        <tr>
-            <td>{{ $key }}</td>
-            <td class="text-right">
-                {{ number_format($items->sum('jumlah'),0,',','.') }}
-            </td>
-        </tr>
-        @endforeach
-
-        <tr>
-            <th>Total Pemasukan</th>
-            <th class="text-right">
-                {{ number_format($pemasukan,0,',','.') }}
-            </th>
-        </tr>
-
-    </table>
-
-
-    <!-- ======================
-     PENGELUARAN
-    ====================== -->
-
-    <div class="section-title">
-        Rincian Pengeluaran
-    </div>
-
-    <table>
-
-        <tr>
-            <th>Keterangan</th>
-            <th class="text-right">Jumlah (Rp)</th>
-        </tr>
-
-        @foreach($detailPengeluaran as $key => $items)
-        <tr>
-            <td>{{ $key }}</td>
-            <td class="text-right">
-                {{ number_format($items->sum('jumlah'),0,',','.') }}
-            </td>
-        </tr>
-        @endforeach
-
-        <tr>
-            <th>Total Pengeluaran</th>
-            <th class="text-right">
-                {{ number_format($pengeluaran,0,',','.') }}
             </th>
         </tr>
 
