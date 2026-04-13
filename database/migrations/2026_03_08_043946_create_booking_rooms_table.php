@@ -15,9 +15,13 @@ return new class extends Migration
 
             $table->id();
 
-            $table->foreignId('booking_id');
+            $table->foreignId('booking_id')
+                ->constrained()
+                ->onDelete('cascade');
 
-            $table->foreignId('room_id');
+            $table->foreignId('room_id')
+                ->constrained()
+                ->onDelete('cascade');
         });
     }
 

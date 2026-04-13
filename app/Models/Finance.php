@@ -13,7 +13,12 @@ class Finance extends Model
         'jumlah',
         'keterangan',
         'tanggal',
-        'booking_id'
-
+        'booking_id',
+        'sumber'
     ];
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 }

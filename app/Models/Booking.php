@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
-
     protected $fillable = [
 
         'kode_booking',
@@ -30,14 +29,26 @@ class Booking extends Model
         'catatan',
         'sumber',
 
-        'status',
-        'bukti_pembayaran'
+        'voucher_id',
+        'diskon',
 
+        'status',
+        'bukti_pembayaran',
+
+        //PAYMENT
+        'metode_pembayaran',
+        'status_pembayaran',
+        'tanggal_pembayaran',
+        'jumlah_dibayar'
     ];
 
     public function rooms()
     {
-
         return $this->belongsToMany(Room::class, 'booking_rooms');
+    }
+
+    public function finance()
+    {
+        return $this->hasOne(Finance::class);
     }
 }

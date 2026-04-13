@@ -25,7 +25,12 @@ return new class extends Migration
 
             $table->date('tanggal');
 
-            $table->foreignId('booking_id')->nullable();
+            $table->string('sumber')->nullable();
+
+            $table->foreignId('booking_id')
+                ->nullable()
+                ->constrained()
+                ->onDelete('cascade');
 
             $table->timestamps();
         });
