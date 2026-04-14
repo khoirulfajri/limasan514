@@ -63,7 +63,7 @@
 
 <div class="card mt-4 shadow">
     <div class="card-body">
-        <h3>Analisis Keuangan</h3>
+        <h3>Grafik Penjualan Kamar</h3>
         
         {{-- menampilkan grafik --}}
         <canvas id="chartSumber"></canvas>
