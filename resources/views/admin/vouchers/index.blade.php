@@ -4,41 +4,13 @@
 
 <h3>Tambah Voucher</h3>
 
-<form action="{{ route('admin.vouchers.store') }}" method="POST">
-    @csrf
-
-    <label>Kode Voucher</label>
-    <input name="kode" class="form-control mb-2" placeholder="Contoh: DISKON10">
-
-    <label>Tipe</label>
-    <select name="tipe" class="form-control mb-2">
-        <option value="persen">Persen</option>
-        <option value="nominal">Nominal</option>
-    </select>
-
-    <label>Nilai</label>
-    <input name="nilai" class="form-control mb-2" placeholder="Contoh: 10 atau 50000">
-
-    <label>Minimal Transaksi</label>
-    <input name="minimal_transaksi" class="form-control mb-2" placeholder="Opsional">
-
-    <label>Kuota</label>
-    <input name="kuota" class="form-control mb-2" placeholder="Opsional">
-
-    <label>Expired</label>
-    <input type="date" name="expired_at" class="form-control mb-2">
-
-    <label>Status</label>
-    <select name="is_active" class="form-control mb-3">
-        <option value="1">Aktif</option>
-        <option value="0">Nonaktif</option>
-    </select>
-
-    <button class="btn btn-primary">Tambah Voucher</button>
-</form>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
+        + Tambah Voucher
+    </button>
+</div>
 
 <hr>
-
 <h3>Data Voucher</h3>
 
 <table class="table table-bordered">
@@ -62,17 +34,17 @@
 
         <td>
             @if($v->tipe == 'persen')
-                <span class="badge bg-info">%</span>
+            <span class="badge bg-info">%</span>
             @else
-                <span class="badge bg-warning">Rp</span>
+            <span class="badge bg-warning">Rp</span>
             @endif
         </td>
 
         <td>
             @if($v->tipe == 'persen')
-                {{ $v->nilai }}%
+            {{ $v->nilai }}%
             @else
-                Rp {{ number_format($v->nilai) }}
+            Rp {{ number_format($v->nilai) }}
             @endif
         </td>
 
@@ -86,26 +58,107 @@
 
         <td>
             @if($v->is_active)
-                <span class="badge bg-success">Aktif</span>
+            <span class="badge bg-success">Aktif</span>
             @else
-                <span class="badge bg-danger">Nonaktif</span>
+            <span class="badge bg-danger">Nonaktif</span>
             @endif
         </td>
 
-        <td>{{ $v->expired_at ?? '-' }}</td>
+        <td>{{ $v->expired_at ?? '-' }}
+            @if($v->expired_at && now()->gt($v->expired_at))
+            <span class="badge bg-dark">Expired</span>
+            @endif
+        </td>
 
         <td>
-            <form action="{{ route('admin.vouchers.destroy', $v->id) }}" method="POST">
-                @csrf
-                @method('DELETE')
 
-                <button class="btn btn-danger btn-sm">Hapus</button>
-            </form>
+            <div class="d-flex gap-1">
+
+                <button class="btn btn-warning btn-sm"
+                    onclick="openEditVoucher({{ $v->id }}, '{{ $v->kode }}', '{{ $v->tipe }}', '{{ $v->nilai }}', '{{ $v->minimal_transaksi }}', '{{ $v->kuota }}', '{{ $v->expired_at }}', '{{ $v->is_active }}')">
+                    ✏️
+                </button>
+
+                <form action="{{ route('admin.vouchers.destroy', $v->id) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+
+                    <button class="btn btn-danger btn-sm">🗑</button>
+                </form>
+
+            </div>
+
         </td>
     </tr>
 
     @endforeach
 
 </table>
+
+{{-- =======================
+modal Tambah dan Ubah
+======================== --}}
+<div class="modal fade" id="modalTambah">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form action="{{ route('admin.vouchers.store') }}" method="POST">
+                @csrf
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Voucher</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <input name="kode" class="form-control mb-2" placeholder="Kode Voucher">
+
+                    <select name="tipe" class="form-control mb-2">
+                        <option value="persen">Persen</option>
+                        <option value="nominal">Nominal</option>
+                    </select>
+
+                    <input name="nilai" class="form-control mb-2" placeholder="Nilai">
+
+                    <input name="minimal_transaksi" class="form-control mb-2" placeholder="Minimal Transaksi">
+
+                    <input name="kuota" class="form-control mb-2" placeholder="Kuota">
+
+                    <input type="date" name="expired_at" placeholder="Expired" class="form-control mb-2">
+
+                    <select name="is_active" class="form-control">
+                        <option value="1">Aktif</option>
+                        <option value="0">Nonaktif</option>
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Simpan</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+<script>
+    function openEditVoucher(id, kode, tipe, nilai, minimal, kuota, expired, status){
+    
+        document.getElementById('edit_kode').value = kode
+        document.getElementById('edit_tipe').value = tipe
+        document.getElementById('edit_nilai').value = nilai
+        document.getElementById('edit_minimal').value = minimal ?? ''
+        document.getElementById('edit_kuota').value = kuota ?? ''
+        document.getElementById('edit_expired').value = expired ?? ''
+        document.getElementById('edit_status').value = status
+    
+        document.getElementById('formEditVoucher').action = `/admin/vouchers/${id}`
+    
+        let modal = new bootstrap.Modal(document.getElementById('modalEditVoucher'))
+        modal.show()
+    }
+</script>
 
 @endsection
