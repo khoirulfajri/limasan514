@@ -61,6 +61,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/booking/confirm/{id}', [AdminController::class, 'confirmBooking'])->name('booking.confirm');
 
     Route::get('/transaksi', [AdminController::class, 'transaksi'])->name('transaksi');
+    Route::post('/transaksi/update/{id}', [AdminController::class, 'updateTransaksi'])->name('transaksi.update');
     Route::get('/transaksi/delete/{id}', [AdminController::class, 'deleteTransaksi'])->name('transaksi.delete');
 
     Route::post('/transaksi/store', [AdminController::class, 'storeTransaksi'])->name('transaksi.store');

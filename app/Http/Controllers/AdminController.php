@@ -467,29 +467,52 @@ class AdminController extends Controller
             'data',
             'pemasukan',
             'pengeluaran',
-            'saldo'
+            'saldo',
+
         ));
+    }
+
+    public function updateTransaksi(Request $request, $id)
+    {
+        $finance = Finance::findOrFail($id);
+
+        // blok jika dari booking
+        if ($finance->booking_id) {
+            return back()->with('error', 'Transaksi dari booking tidak bisa diedit');
+        }
+
+        $bukti = $finance->bukti;
+
+        if ($request->hasFile('bukti')) {
+
+            $file = $request->file('bukti');
+
+            $folder = $request->tipe == 'pengeluaran'
+                ? 'bukti_pengeluaran'
+                : 'bukti_pemasukan';
+
+            $namaFile = $folder . '/' . time() . '_' . $file->getClientOriginalName();
+
+            $file->storeAs('public', $namaFile);
+
+            $bukti = $namaFile;
+        }
+
+        $finance->update([
+            'tanggal' => $request->tanggal,
+            'tipe' => $request->tipe,
+            'jumlah' => $request->jumlah,
+            'keterangan' => $request->keterangan,
+            'bukti' => $bukti
+        ]);
+
+        return back()->with('success', 'Transaksi berhasil diupdate');
     }
 
     public function deleteTransaksi($id)
     {
         Finance::findOrFail($id)->delete();
         return back();
-    }
-
-    public function storeTransaksi(Request $request)
-    {
-        $kode = $request->tipe == 'pemasukan' ? 'INC' : 'EXP';
-
-        Finance::create([
-            'kode_transaksi' => generateKode($kode, 'finances', 'kode_transaksi'),
-            'tipe' => $request->tipe,
-            'jumlah' => $request->jumlah,
-            'keterangan' => $request->keterangan,
-            'tanggal' => $request->tanggal
-        ]);
-
-        return back()->with('success', 'Transaksi berhasil ditambahkan');
     }
 
     // ======================

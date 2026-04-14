@@ -14,7 +14,8 @@ class Finance extends Model
         'keterangan',
         'tanggal',
         'booking_id',
-        'sumber'
+        'sumber',
+        'bukti',
     ];
 
     public function booking()
