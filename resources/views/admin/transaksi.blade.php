@@ -2,50 +2,12 @@
 
 @section('content')
 
-<h3 class="mb-3">Input Transaksi</h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Data Transaksi</h3>
 
-{{-- ======================
-FORM TAMBAH TRANSAKSI
-====================== --}}
-<div class="card mb-4">
-    <div class="card-body">
-
-        <form action="{{route('admin.transaksi.store')}}" method="POST" enctype="multipart/form-data" class="row g-2">
-            @csrf
-
-            <div class="col-md-2">
-                <input type="date" name="tanggal" class="form-control" required>
-            </div>
-
-            <div class="col-md-2">
-                <select name="tipe" class="form-control" required>
-                    <option value="">Tipe</option>
-                    <option value="pemasukan">Pemasukan</option>
-                    <option value="pengeluaran">Pengeluaran</option>
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <input name="jumlah" class="form-control" placeholder="Jumlah" required>
-            </div>
-
-            <div class="col-md-2">
-                <input name="keterangan" class="form-control" placeholder="Keterangan">
-            </div>
-            <div class="col-md-2">
-                <input type="file" name="bukti" class="form-control mb-2">
-                {{-- <small class="text-muted">Opsional (nota, struk, dll)</small> --}}
-            </div>
-
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100">
-                    Simpan
-                </button>
-            </div>
-
-        </form>
-
-    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
+        + Tambah Transaksi
+    </button>
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -185,7 +147,7 @@ TABLE
                             <a href="{{route('admin.transaksi.delete',$t->id)}}"
                                 class="btn btn-sm btn-danger d-flex align-items-center gap-1 px-2"
                                 onclick="return confirm('Hapus transaksi ini?')">
-                                🗑 
+                                🗑
                             </a>
 
                         </div>
@@ -228,6 +190,54 @@ MODAL BUKTI
             <div class="modal-body text-center">
                 <img id="imgPreview" src="" class="img-fluid rounded">
             </div>
+
+        </div>
+    </div>
+</div>
+
+{{-- ======================
+MODAL TAMBAH TRANSAKSI
+====================== --}}
+<div class="modal fade" id="modalTambah" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form action="{{route('admin.transaksi.store')}}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Transaksi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Tanggal</label>
+                    <input type="date" name="tanggal" class="form-control mb-2" required>
+
+                    <label>Tipe</label>
+                    <select name="tipe" class="form-control mb-2" required>
+                        <option value="">-- Pilih --</option>
+                        <option value="pemasukan">Pemasukan</option>
+                        <option value="pengeluaran">Pengeluaran</option>
+                    </select>
+
+                    <label>Jumlah</label>
+                    <input name="jumlah" class="form-control mb-2" required>
+
+                    <label>Keterangan</label>
+                    <input name="keterangan" class="form-control mb-2">
+
+                    <label>Bukti (Opsional)</label>
+                    <input type="file" name="bukti" class="form-control">
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Simpan</button>
+                </div>
+
+            </form>
 
         </div>
     </div>
@@ -277,14 +287,40 @@ MODAL EDIT TRANSAKSI
 </div>
 
 <script>
+    // ======================
+    // PREVIEW BUKTI
+    // ======================
     function previewBukti(src) {
         document.getElementById('imgPreview').src = src;
     
         let modal = new bootstrap.Modal(document.getElementById('modalBukti'));
         modal.show();
     }
+
+    // ======================
+    // RESET FORM TAMBAH
+    // ======================
+    document.addEventListener('DOMContentLoaded', function () {
+
+        let formTambah = document.querySelector('#modalTambah form');
+
+        if (formTambah) {
+            formTambah.addEventListener('submit', function () {
+
+                setTimeout(() => {
+                    formTambah.reset();
+                }, 300);
+
+            });
+        }
+
+    });
 </script>
+
 <script>
+    // ======================
+    // OPEN EDIT MODAL
+    // ======================
     function openEditModal(id, tanggal, tipe, jumlah, keterangan){
     
         document.getElementById('edit_tanggal').value = tanggal

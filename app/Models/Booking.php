@@ -51,4 +51,9 @@ class Booking extends Model
     {
         return $this->hasOne(Finance::class);
     }
+
+    public function voucher()
+    {
+        return $this->belongsTo(Voucher::class);
+    }
 }

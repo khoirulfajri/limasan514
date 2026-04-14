@@ -42,7 +42,11 @@ return new class extends Migration
             ])->default('website');
 
             // VOUCHER
-            $table->foreignId('voucher_id')->nullable();
+            $table->foreignId('voucher_id')
+                ->nullable()
+                ->constrained('vouchers')
+                ->nullOnDelete();
+
             $table->integer('diskon')->default(0);
 
             $table->text('catatan')->nullable();

@@ -34,14 +34,14 @@
                     <h5>Data Customer</h5>
                     <hr>
 
-                    <label class="form-label">Nama</label>
-                    <input name="nama" class="form-control mb-3" value="{{ $booking->nama ?? '' }}" required>
+                    <label class="form-label" >Nama</label>
+                    <input name="nama" class="form-control mb-3" placeholder="Masukkan nama" value="{{ $booking->nama ?? '' }}" required>
 
                     <label class="form-label">Email</label>
-                    <input name="email" class="form-control mb-3" value="{{ $booking->email ?? '' }}" required>
+                    <input name="email" class="form-control mb-3" placeholder="Masukkan email" value="{{ $booking->email ?? '' }}" required>
 
                     <label class="form-label">No. Telepon</label>
-                    <input name="no_telp" class="form-control mb-3" value="{{ $booking->no_telp ?? '' }}">
+                    <input name="no_telp" class="form-control mb-3" placeholder="contoh: 089xxxxx" value="{{ $booking->no_telp ?? '' }}">
 
                     <label class="form-label">Jenis Kelamin</label>
                     <select name="jenis_kelamin" class="form-control mb-3">
@@ -69,12 +69,16 @@
                     </select>
 
                     <label class="form-label">Jumlah Tamu</label>
-                    <input type="number" name="jumlah_tamu" class="form-control mb-3"
+                    <input type="number" name="jumlah_tamu" class="form-control mb-3"  placeholder="Masukkan jumlah tamu"
                         value="{{ $booking->jumlah_tamu ?? '' }}" min="1">
 
-                    <label class="form-label">Jumlah Kamar</label>
-                    <input type="number" name="jumlah_kamar" class="form-control mb-3"
+                    <label class="form-label" >Jumlah Kamar</label>
+                    <input type="number" name="jumlah_kamar" class="form-control mb-3" placeholder="Masukkan jumlah kamar"
                         value="{{ $booking->jumlah_kamar ?? '' }}" min="1">
+
+                    <label class="form-label">Kode Voucher</label>
+                    <input name="kode_voucher" class="form-control mb-3" value="{{ $booking->voucher->kode ?? '' }}"
+                        placeholder="Masukkan kode voucher">
 
                     <div class="row">
                         <div class="col">
@@ -99,6 +103,14 @@
                             <label class="form-label">Total Harga</label>
                             <input name="total_harga" class="form-control mb-3"
                                 value="{{ $booking->total_harga ?? '' }}" readonly>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <label class="form-label">Diskon</label>
+                                <input id="diskon" class="form-control mb-3" value="{{ $booking->diskon ?? 0 }}"
+                                    readonly>
+                            </div>
                         </div>
                     </div>
 
@@ -160,10 +172,11 @@
                                 class="img-thumbnail mt-1">
                         </a>
                     </div>
+                    <small class="text-muted">Kosongkan jika tidak ingin mengubah bukti</small>
                     @endif
 
                     <input type="file" name="bukti_pembayaran" class="form-control mb-3">
-                    <small class="text-muted">Kosongkan jika tidak ingin mengubah bukti</small>
+                    
 
                 </div>
 
@@ -180,44 +193,54 @@
         <script>
             const isEdit = {{ $booking ? 'true' : 'false' }};
             const hargaPerMalam = {{ $harga ?? 0 }};
-        
-            const initialCheckin = "{{ $booking->check_in ?? '' }}";
-            const initialCheckout = "{{ $booking->check_out ?? '' }}";
-            const initialKamar = "{{ $booking->jumlah_kamar ?? '' }}";
-        
-            function hitungTotal() {
-        
+            
+            async function hitungTotal(){
+            
                 let checkin = document.querySelector('[name=check_in]').value;
                 let checkout = document.querySelector('[name=check_out]').value;
                 let kamar = document.querySelector('[name=jumlah_kamar]').value;
-        
+                let kode = document.querySelector('[name=kode_voucher]').value;
+            
                 if (!checkin || !checkout || !kamar) return;
-        
-                let tgl1 = new Date(checkin);
-                let tgl2 = new Date(checkout);
-        
-                let selisih = (tgl2 - tgl1) / (1000 * 60 * 60 * 24);
-        
-                if (selisih <= 0) return;
-        
-                document.querySelector('[name=total_malam]').value = selisih;
-        
-                //CEK PERUBAHAN
-                let berubah =
-                    checkin !== initialCheckin ||
-                    checkout !== initialCheckout ||
-                    kamar !== initialKamar;
-        
-                if (isEdit && !berubah) return;
-        
-                let total = selisih * hargaPerMalam * kamar;
-        
-                document.querySelector('[name=total_harga]').value = total;
+            
+                let t1 = new Date(checkin);
+                let t2 = new Date(checkout);
+            
+                let malam = (t2 - t1) / (1000 * 60 * 60 * 24);
+            
+                if (malam <= 0) return;
+            
+                document.querySelector('[name=total_malam]').value = malam;
+            
+                let total = malam * hargaPerMalam * kamar;
+                let diskon = 0;
+            
+                // 🔥 CEK VOUCHER
+                if(kode){
+                    let res = await fetch(`/cek-voucher?kode=${kode}`);
+                    let data = await res.json();
+            
+                    if(data.status){
+                        if(data.tipe === 'persen'){
+                            diskon = total * (data.nilai / 100);
+                        } else {
+                            diskon = data.nilai;
+                        }
+                    }
+                }
+            
+                diskon = Math.min(diskon, total);
+            
+                let totalAkhir = total - diskon;
+            
+                document.querySelector('[name=total_harga]').value = totalAkhir;
+                document.getElementById('diskon').value = diskon;
             }
-        
+            
             document.querySelector('[name=check_in]').addEventListener('change', hitungTotal);
             document.querySelector('[name=check_out]').addEventListener('change', hitungTotal);
             document.querySelector('[name=jumlah_kamar]').addEventListener('input', hitungTotal);
+            document.querySelector('[name=kode_voucher]').addEventListener('input', hitungTotal);
         </script>
     </div>
 </div>

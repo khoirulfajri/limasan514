@@ -26,6 +26,8 @@ return new class extends Migration
             $table->date('tanggal');
 
             $table->string('sumber')->nullable();
+            
+            $table->string('bukti')->nullable();
 
             $table->foreignId('booking_id')
                 ->nullable()

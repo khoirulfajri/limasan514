@@ -96,7 +96,7 @@
 </table>
 
 {{-- =======================
-modal Tambah dan Ubah
+modal Tambah
 ======================== --}}
 <div class="modal fade" id="modalTambah">
     <div class="modal-dialog">
@@ -136,6 +136,63 @@ modal Tambah dan Ubah
 
                 <div class="modal-footer">
                     <button class="btn btn-primary">Simpan</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+{{-- ======
+modal Edit
+============ --}}
+<div class="modal fade" id="modalEditVoucher">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form method="POST" id="formEditVoucher">
+                @csrf
+                @method('PUT')
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Voucher</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Kode Voucher</label>
+                    <input name="kode" id="edit_kode" class="form-control mb-2">
+
+                    <label>Tipe</label>
+                    <select name="tipe" id="edit_tipe" class="form-control mb-2">
+                        <option value="persen">Persen</option>
+                        <option value="nominal">Nominal</option>
+                    </select>
+
+                    <label>Nilai</label>
+                    <input name="nilai" id="edit_nilai" class="form-control mb-2">
+
+                    <label>Minimal Transaksi</label>
+                    <input name="minimal_transaksi" id="edit_minimal" class="form-control mb-2">
+
+                    <label>Kuota</label>
+                    <input name="kuota" id="edit_kuota" class="form-control mb-2">
+
+                    <label>Expired</label>
+                    <input type="date" name="expired_at" id="edit_expired" class="form-control mb-2">
+
+                    <label>Status</label>
+                    <select name="is_active" id="edit_status" class="form-control">
+                        <option value="1">Aktif</option>
+                        <option value="0">Nonaktif</option>
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Update</button>
                 </div>
 
             </form>

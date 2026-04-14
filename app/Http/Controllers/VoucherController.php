@@ -32,6 +32,29 @@ class VoucherController extends Controller
         return back()->with('success', 'Voucher berhasil ditambahkan');
     }
 
+    public function update(Request $request, $id)
+    {
+        $voucher = Voucher::findOrFail($id);
+
+        $request->validate([
+            'kode' => 'required',
+            'tipe' => 'required|in:persen,nominal',
+            'nilai' => 'required|numeric',
+        ]);
+
+        $voucher->update([
+            'kode' => strtoupper($request->kode),
+            'tipe' => $request->tipe,
+            'nilai' => $request->nilai,
+            'minimal_transaksi' => $request->minimal_transaksi,
+            'kuota' => $request->kuota,
+            'expired_at' => $request->expired_at,
+            'is_active' => $request->is_active,
+        ]);
+
+        return back()->with('success', 'Voucher berhasil diupdate');
+    }
+
     public function edit($id)
     {
         $voucher = Voucher::findOrFail($id);

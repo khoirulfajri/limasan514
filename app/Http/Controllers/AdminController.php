@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\Booking;
 use App\Models\Finance;
 use App\Models\Room;
+use App\Models\Voucher;
 
 class AdminController extends Controller
 {
@@ -214,6 +215,29 @@ class AdminController extends Controller
                 $bukti = $namaFile;
             }
 
+            // diskon
+            $diskon = 0;
+            $voucher_id = null;
+
+            if ($request->kode_voucher) {
+
+                $voucher = Voucher::where('kode', strtoupper($request->kode_voucher))->first();
+
+                if ($voucher && $voucher->is_active) {
+
+                    if ($voucher->tipe == 'persen') {
+                        $diskon = ($voucher->nilai / 100) * $totalHarga;
+                    } else {
+                        $diskon = $voucher->nilai;
+                    }
+
+                    $diskon = min($diskon, $totalHarga);
+                    $voucher_id = $voucher->id;
+                }
+            }
+
+            $totalHarga -= $diskon;
+
             // SIMPAN BOOKING
             $booking = Booking::create([
                 'kode_booking' => generateKode('BK', 'bookings', 'kode_booking'),
@@ -231,6 +255,9 @@ class AdminController extends Controller
 
                 'total_malam' => $totalMalam,
                 'total_harga' => $totalHarga,
+
+                'voucher_id' => $voucher_id,
+                'diskon' => $diskon,
 
                 'catatan' => $request->catatan,
                 'sumber' => $request->sumber ?? 'website',
@@ -264,6 +291,11 @@ class AdminController extends Controller
                     'sumber' => $booking->sumber
                 ]);
             }
+
+            if ($booking['voucher_id']) {
+                Voucher::where('id', $booking['voucher_id'])->increment('digunakan');
+            }
+
             // EMAIL
             if (!in_array($booking->sumber, ['booking.com', 'agoda', 'tiket.com'])) {
                 try {
@@ -330,6 +362,29 @@ class AdminController extends Controller
                 $bukti = $namaFile;
             }
 
+            // diskon
+            $diskon = 0;
+            $voucher_id = null;
+
+            if ($request->kode_voucher) {
+
+                $voucher = Voucher::where('kode', strtoupper($request->kode_voucher))->first();
+
+                if ($voucher && $voucher->is_active) {
+
+                    if ($voucher->tipe == 'persen') {
+                        $diskon = ($voucher->nilai / 100) * $totalHarga;
+                    } else {
+                        $diskon = $voucher->nilai;
+                    }
+
+                    $diskon = min($diskon, $totalHarga);
+                    $voucher_id = $voucher->id;
+                }
+            }
+
+            $totalHarga -= $diskon;
+
             // 🔥 UPDATE BOOKING
             $booking->update([
                 'nama' => $request->nama,
@@ -345,6 +400,9 @@ class AdminController extends Controller
 
                 'total_malam' => $totalMalam,
                 'total_harga' => $totalHarga,
+
+                'voucher_id' => $voucher_id,
+                'diskon' => $diskon,
 
                 'catatan' => $request->catatan,
                 'sumber' => $request->sumber ?? 'website',
@@ -571,6 +629,60 @@ class AdminController extends Controller
             'dataPemasukan',
             'dataPengeluaran'
         ));
+    }
+
+    public function storeTransaksi(Request $request)
+    {
+        // ======================
+        // VALIDASI
+        // ======================
+        $request->validate([
+            'tanggal' => 'required|date',
+            'tipe' => 'required|in:pemasukan,pengeluaran',
+            'jumlah' => 'required|numeric|min:1',
+            'bukti' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
+        ]);
+
+        // ======================
+        // KODE TRANSAKSI
+        // ======================
+        $kodePrefix = $request->tipe == 'pemasukan' ? 'INC' : 'EXP';
+
+        // ======================
+        // UPLOAD BUKTI
+        // ======================
+        $bukti = null;
+
+        if ($request->hasFile('bukti')) {
+
+            $file = $request->file('bukti');
+
+            // folder beda biar rapi
+            $folder = $request->tipe == 'pengeluaran'
+                ? 'bukti_pengeluaran'
+                : 'bukti_pemasukan';
+
+            $namaFile = $folder . '/' . time() . '_' . $file->getClientOriginalName();
+
+            $file->storeAs('public', $namaFile);
+
+            $bukti = $namaFile;
+        }
+
+        // ======================
+        // SIMPAN DATA
+        // ======================
+        Finance::create([
+            'kode_transaksi' => generateKode($kodePrefix, 'finances', 'kode_transaksi'),
+            'tipe' => $request->tipe,
+            'jumlah' => $request->jumlah,
+            'keterangan' => $request->keterangan,
+            'tanggal' => $request->tanggal,
+            'bukti' => $bukti,
+            'sumber' => 'manual' // opsional tapi bagus untuk tracking
+        ]);
+
+        return back()->with('success', 'Transaksi berhasil ditambahkan');
     }
 
     public function exportPDF(Request $r)
