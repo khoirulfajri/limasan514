@@ -174,37 +174,6 @@
      NARASI
     ====================== -->
 
-    <p style="margin-top:20px; text-align:justify; font-size:13px;">
-
-        Berdasarkan laporan keuangan yang disusun,
-        total pemasukan sebesar
-
-        <strong>
-            Rp {{ number_format($pemasukan,0,',','.') }}
-        </strong>
-
-        dan total pengeluaran sebesar
-
-        <strong>
-            Rp {{ number_format($pengeluaran,0,',','.') }}
-        </strong>.
-
-        Dengan demikian, Limasan 514 memperoleh
-
-        <strong>
-            {{ $saldo >= 0 ? 'laba bersih' : 'rugi bersih' }}
-        </strong>
-
-        sebesar
-
-        <strong>
-            Rp {{ number_format(abs($saldo),0,',','.') }}
-        </strong>
-
-        pada periode tersebut.
-
-    </p>
-
 
     <br><br>
 
