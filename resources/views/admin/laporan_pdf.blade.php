@@ -63,8 +63,8 @@
 
 <body>
 
-    <h2>LAPORAN LABA RUGI</h2>
-    <h3>Limasan 514</h3>
+    <h2>Limasan 514</h2>
+    <h3>LAPORAN LABA RUGI</h3>
 
     <p class="text-center">
         @if(request('bulan'))
@@ -152,19 +152,45 @@
 
 
         {{-- ======================
-        LABA / RUGI
+        LABA / RUGI + BAGI HASIL
         ====================== --}}
         @php
         $saldo = $totalPemasukan - $totalPengeluaran;
+
+        $a = $saldo * 0.65;
+        $b = $saldo * 0.30;
+        $c = $saldo * 0.05;
         @endphp
 
-        <tr style="background: #ffff00;">
+        <tr style="background: #fff200;">
             <th colspan="2">
                 {{ $saldo >= 0 ? 'Laba Bersih' : 'Rugi Bersih' }}
             </th>
             <th colspan="2" class="text-right">
-                {{ number_format(abs($saldo),0,',','.') }}
+                Rp {{ number_format(abs($saldo),0,',','.') }}
             </th>
+        </tr>
+
+        {{-- BAGI HASIL --}}
+        <tr style="background: #d4edda;">
+            <td colspan="2"><b>Bagian A</b></td>
+            <td colspan="2" class="text-right">
+                Rp {{ number_format($a,0,',','.') }}
+            </td>
+        </tr>
+
+        <tr style="background: #cce5ff;">
+            <td colspan="2"><b>Bagian B</b></td>
+            <td colspan="2" class="text-right">
+                Rp {{ number_format($b,0,',','.') }}
+            </td>
+        </tr>
+
+        <tr style="background: #f8d7da;">
+            <td colspan="2"><b>Bagian C</b></td>
+            <td colspan="2" class="text-right">
+                Rp {{ number_format($c,0,',','.') }}
+            </td>
         </tr>
 
     </table>
