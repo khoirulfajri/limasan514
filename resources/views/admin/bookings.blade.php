@@ -2,6 +2,7 @@
 
 @section('content')
 
+@if (auth()->user()->role == 'admin')
 <div class="d-flex justify-content-between mb-3">
     <h3>Data Booking</h3>
 
@@ -9,6 +10,7 @@
         + Tambah Booking
     </a>
 </div>
+@endif
 
 {{-- FILTER --}}
 <div class="mb-3 d-flex gap-2 flex-wrap">
@@ -114,6 +116,7 @@
                     </td>
 
                     <td class="d-flex gap-1">
+                        @if(auth()->user()->role == 'admin')
 
                         <a href="{{route('admin.booking.confirm',$b->id)}}" class="btn btn-success btn-sm">
                             ✔
@@ -126,6 +129,7 @@
                         <a href="{{route('admin.booking.delete',$b->id)}}" class="btn btn-danger btn-sm">
                             Cancel
                         </a>
+                        @endif
 
                     </td>
 

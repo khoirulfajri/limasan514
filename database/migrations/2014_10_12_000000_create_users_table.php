@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('no_telp');
             $table->enum('jenis_kelamin',['L','P']);
             $table->string('password')->nullable();
-            $table->enum('role',['admin','customer'])->default('customer');
+            $table->enum('role',['admin','owner','customer'])->default('customer');
             $table->timestamps();
         });
     }

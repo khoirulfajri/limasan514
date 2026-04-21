@@ -5,9 +5,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Data Transaksi</h3>
 
+    @if (auth()->user()->role == 'admin')
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
         + Tambah Transaksi
     </button>
+    @endif
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -128,6 +130,7 @@ TABLE
 
                     <td class="text-center">
 
+                        @if (auth()->user()->role == 'admin')
                         <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
 
                             {{-- AUTO (BOOKING) --}}
@@ -151,6 +154,7 @@ TABLE
                             </a>
 
                         </div>
+                        @endif
 
                     </td>
 

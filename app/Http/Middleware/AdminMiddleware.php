@@ -17,7 +17,7 @@ class AdminMiddleware
             return redirect('/admin/login');
         }
 
-        if (Auth::user()->role != 'admin') {
+        if (!in_array(Auth::user()->role, ['admin', 'owner'])) {
             abort(403);
         }
 

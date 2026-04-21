@@ -40,7 +40,7 @@ Route::post('/cek-booking/upload/{id}', [BookingController::class, 'uploadBukti'
 // mendapatkan tanggal penuh untuk kalender
 Route::get('/full-dates', [BookingController::class, 'getFullDates']);
 
-Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware('role:admin,owner')->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 

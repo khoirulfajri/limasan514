@@ -2,13 +2,14 @@
 
 @section('content')
 
+@if (auth()->user()->role == 'admin')
 <h3>Tambah Voucher</h3>
-
 <div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
         + Tambah Voucher
     </button>
 </div>
+@endif
 
 <hr>
 <h3>Data Voucher</h3>
@@ -73,6 +74,7 @@
         <td>
 
             <div class="d-flex gap-1">
+                @if(auth()->user()->role == 'admin')
 
                 <button class="btn btn-warning btn-sm"
                     onclick="openEditVoucher({{ $v->id }}, '{{ $v->kode }}', '{{ $v->tipe }}', '{{ $v->nilai }}', '{{ $v->minimal_transaksi }}', '{{ $v->kuota }}', '{{ $v->expired_at }}', '{{ $v->is_active }}')">
@@ -85,6 +87,7 @@
 
                     <button class="btn btn-danger btn-sm">🗑</button>
                 </form>
+                @endif
 
             </div>
 

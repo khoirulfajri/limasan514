@@ -20,9 +20,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
 
-            if (Auth::user()->role != 'admin') {
+            if (!in_array(Auth::user()->role, ['admin', 'owner'])) {
                 Auth::logout();
-                return back()->with('error', 'Akun Anda bukan admin');
+                return back()->with('error', 'Akun tidak memiliki akses');
             }
 
             return redirect()->route('admin.dashboard');
