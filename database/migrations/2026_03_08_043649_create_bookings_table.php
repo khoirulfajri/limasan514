@@ -38,7 +38,8 @@ return new class extends Migration
                 'booking.com',
                 'agoda',
                 'tiket.com',
-                'on_the_spot'
+                'on_the_spot',
+                'whatsapp',
             ])->default('website');
 
             // VOUCHER
