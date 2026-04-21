@@ -21,7 +21,7 @@
         Semua
     </a>
 
-    @foreach(['website','booking.com','agoda','tiket.com','on_the_spot'] as $s)
+    @foreach(['website','booking.com','agoda','tiket.com','on_the_spot','whatsapp'] as $s)
     <a href="?sumber={{$s}}" class="btn {{ $current==$s ? 'btn-primary' : 'btn-outline-primary' }}">
         {{$s}}
     </a>

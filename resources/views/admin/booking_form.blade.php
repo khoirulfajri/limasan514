@@ -61,7 +61,7 @@
 
                     <label class="form-label">Sumber Booking</label>
                     <select name="sumber" class="form-control mb-3">
-                        @foreach(['website','booking.com','agoda','tiket.com','on_the_spot'] as $s)
+                        @foreach(['website','booking.com','agoda','tiket.com','on_the_spot','whatsapp'] as $s)
                         <option value="{{$s}}" {{ ($booking->sumber ?? '')==$s?'selected':'' }}>
                             {{$s}}
                         </option>
