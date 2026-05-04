@@ -727,4 +727,97 @@ class AdminController extends Controller
 
         return $pdf->stream('laporan-keuangan.pdf');
     }
+
+    //====================
+    // TAMU
+    //====================
+
+    public function tamu(Request $r)
+    {
+        $query = \App\Models\Booking::with('rooms')
+            ->where('status', '!=', 'cancelled');
+
+        // ======================
+        // SEARCH NAMA
+        // ======================
+        if ($r->search) {
+            $query->where('nama', 'like', '%' . $r->search . '%');
+        }
+
+        // ======================
+        // FILTER TANGGAL
+        // ======================
+        if ($r->check_in) {
+            $query->whereDate('check_in', '>=', $r->check_in);
+        }
+
+        if ($r->check_out) {
+            $query->whereDate('check_out', '<=', $r->check_out);
+        }
+
+        // ======================
+        // SEDANG MENGINAP HARI INI
+        // ======================
+        if ($r->today) {
+            $today = now()->toDateString();
+
+            $query->whereDate('check_in', '<=', $today)
+                ->whereDate('check_out', '>=', $today);
+        }
+
+        // ======================
+        // 🛏 FILTER KAMAR
+        // ======================
+        if ($r->room) {
+            $query->whereHas('rooms', function ($q) use ($r) {
+                $q->where('nomor_kamar', $r->room);
+            });
+        }
+
+        $data = $query->orderBy('check_in', 'asc')->get();
+
+        return view('admin.tamu', compact('data'));
+    }
+
+    //======================
+    // TAMU PDF
+    //======================
+
+    public function tamuPDF(Request $r)
+    {
+        $query = \App\Models\Booking::with('rooms')
+            ->where('status', '!=', 'cancelled');
+
+        // 🔁 COPY FILTER (HARUS SAMA)
+        if ($r->search) {
+            $query->where('nama', 'like', '%' . $r->search . '%');
+        }
+
+        if ($r->check_in) {
+            $query->whereDate('check_in', '>=', $r->check_in);
+        }
+
+        if ($r->check_out) {
+            $query->whereDate('check_out', '<=', $r->check_out);
+        }
+
+        if ($r->today) {
+            $today = now()->toDateString();
+
+            $query->whereDate('check_in', '<=', $today)
+                ->whereDate('check_out', '>=', $today);
+        }
+
+        if ($r->room) {
+            $query->whereHas('rooms', function ($q) use ($r) {
+                $q->where('nomor_kamar', $r->room);
+            });
+        }
+
+        $data = $query->orderBy('check_in', 'asc')->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.tamu_pdf', compact('data'));
+
+        return $pdf->stream('data-tamu.pdf');
+    }
 }

@@ -17,11 +17,9 @@ return new class extends Migration
 
             $table->string('nomor_kamar');
             $table->integer('lantai');
-
             $table->integer('max_tamu')->default(2);
-
-            // TAMBAHAN WAJIB
             $table->integer('harga_per_malam')->default(350000);
+            $table->enum('status', ['available', 'maintenance', 'private'])->default('available');
 
             $table->timestamps();
         });

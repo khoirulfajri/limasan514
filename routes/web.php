@@ -40,6 +40,8 @@ Route::post('/cek-booking/upload/{id}', [BookingController::class, 'uploadBukti'
 // mendapatkan tanggal penuh untuk kalender
 Route::get('/full-dates', [BookingController::class, 'getFullDates']);
 
+
+// Route untuk Admin
 Route::prefix('admin')->name('admin.')->middleware('role:admin,owner')->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
@@ -63,6 +65,9 @@ Route::prefix('admin')->name('admin.')->middleware('role:admin,owner')->group(fu
     Route::get('/transaksi', [AdminController::class, 'transaksi'])->name('transaksi');
     Route::post('/transaksi/update/{id}', [AdminController::class, 'updateTransaksi'])->name('transaksi.update');
     Route::get('/transaksi/delete/{id}', [AdminController::class, 'deleteTransaksi'])->name('transaksi.delete');
+
+    Route::get('/tamu', [AdminController::class, 'tamu'])->name('tamu');
+    Route::get('/tamu/pdf', [AdminController::class, 'tamuPDF'])->name('tamu.pdf');
 
     Route::post('/transaksi/store', [AdminController::class, 'storeTransaksi'])->name('transaksi.store');
     Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');

@@ -52,6 +52,7 @@
             <a href="{{route('admin.vouchers.index')}}">Voucher</a>
             <a href="{{route('admin.bookings')}}">Booking</a>
             <a href="{{route('admin.transaksi')}}">Transaksi</a>
+            <a href="{{ route('admin.tamu') }}">Data Pengunjung</a>
             <a href="{{route('admin.laporan')}}">Laporan</a>
 
             <form action="{{route('admin.logout')}}" method="POST">

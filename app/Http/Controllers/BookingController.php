@@ -20,7 +20,10 @@ class BookingController extends Controller
     // ======================
     public function getFullDates()
     {
-        $totalRooms = Room::count() - 1;
+        $rooms = Room::where('status', 'available')->count();
+        $otaBuffer = 1;
+
+        $totalRooms = $rooms - $otaBuffer;
 
         $bookings = Booking::where('status', '!=', 'cancelled')->get();
 
@@ -84,7 +87,9 @@ class BookingController extends Controller
 
             ->pluck('room_id');
 
-        return Room::whereNotIn('id', $bookedRooms)->get();
+        return Room::whereNotIn('id', $bookedRooms)
+            ->where('status', 'available')
+            ->get();
     }
 
     // ======================
@@ -321,9 +326,9 @@ class BookingController extends Controller
     public function booking()
     {
         $booking = session('booking_temp'); // ambil session
-        $room = Room::first();
+        $room = Room::where('nomor_kamar', '>=', 2)->first();
         $harga = $room->harga_per_malam;
-        return view('frontend.page.booking', compact('booking','harga'));
+        return view('frontend.page.booking', compact('booking', 'harga'));
     }
 
     // ======================
