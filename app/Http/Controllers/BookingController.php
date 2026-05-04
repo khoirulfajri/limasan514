@@ -246,7 +246,11 @@ class BookingController extends Controller
                 return redirect('/booking')->with('error', 'Kamar tidak tersedia');
             }
 
-            $bukti = $r->file('bukti')->store('bukti', 'public');
+            $file = $r->file('bukti');
+            $ext = $file->getClientOriginalExtension();
+            $namaFile = $data['kode_booking'] . '.' . $ext;
+            $file->storeAs('public/bukti', $namaFile);
+            $bukti = 'bukti/' . $namaFile;
 
             $booking = Booking::create([
                 'kode_booking' => $data['kode_booking'],

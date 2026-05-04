@@ -182,7 +182,9 @@ class AdminController extends Controller
                 'jumlah_kamar' => 'required|numeric|min:1'
             ]);
 
+            // ======================
             // CEK KETERSEDIAAN
+            // ======================
             $availableRooms = app(BookingController::class)
                 ->checkAvailability($request->check_in, $request->check_out);
 
@@ -190,11 +192,14 @@ class AdminController extends Controller
                 return back()->with('error', 'Kamar tidak cukup');
             }
 
+            // ======================
             // HITUNG TOTAL
+            // ======================
             $totalMalam = Carbon::parse($request->check_in)
                 ->diffInDays($request->check_out);
 
-            $room = Room::first();
+            $room = Room::where('status', 'available')->first();
+
             if (!$room) {
                 return back()->with('error', 'Data kamar belum tersedia');
             }
@@ -202,20 +207,9 @@ class AdminController extends Controller
             $harga = $room->harga_per_malam;
             $totalHarga = $totalMalam * $harga * $request->jumlah_kamar;
 
-            $bukti = null;
-
-            if ($request->hasFile('bukti_pembayaran')) {
-
-                $file = $request->file('bukti_pembayaran');
-
-                $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
-
-                $file->storeAs('public', $namaFile);
-
-                $bukti = $namaFile;
-            }
-
-            // diskon
+            // ======================
+            // VOUCHER
+            // ======================
             $diskon = 0;
             $voucher_id = null;
 
@@ -238,9 +232,16 @@ class AdminController extends Controller
 
             $totalHarga -= $diskon;
 
-            // SIMPAN BOOKING
+            // ======================
+            // GENERATE KODE BOOKING
+            // ======================
+            $kodeBooking = generateKode('BK', 'bookings', 'kode_booking');
+
+            // ======================
+            // SIMPAN BOOKING (TANPA BUKTI DULU)
+            // ======================
             $booking = Booking::create([
-                'kode_booking' => generateKode('BK', 'bookings', 'kode_booking'),
+                'kode_booking' => $kodeBooking,
 
                 'nama' => $request->nama,
                 'email' => $request->email,
@@ -266,10 +267,28 @@ class AdminController extends Controller
 
                 'metode_pembayaran' => $request->metode_pembayaran ?? 'cash',
                 'status_pembayaran' => $request->status_pembayaran ?? 'lunas',
-                'bukti_pembayaran' => $bukti,
             ]);
 
+            // ======================
+            // UPLOAD BUKTI (SETELAH ADA KODE BOOKING)
+            // ======================
+            if ($request->hasFile('bukti_pembayaran')) {
+
+                $file = $request->file('bukti_pembayaran');
+                $ext = $file->getClientOriginalExtension();
+
+                $namaFile = $kodeBooking  . '.' . $ext;
+
+                $file->storeAs('public/bukti', $namaFile);
+
+                $booking->update([
+                    'bukti_pembayaran' => 'bukti/' . $namaFile
+                ]);
+            }
+
+            // ======================
             // ASSIGN ROOM
+            // ======================
             $rooms = $availableRooms->take($request->jumlah_kamar);
 
             foreach ($rooms as $room) {
@@ -279,7 +298,9 @@ class AdminController extends Controller
                 ]);
             }
 
-            // FINANCE (JIKA LUNAS)
+            // ======================
+            // FINANCE
+            // ======================
             if ($booking->status_pembayaran == 'lunas') {
                 Finance::create([
                     'kode_transaksi' => generateKode('INC', 'finances', 'kode_transaksi'),
@@ -292,11 +313,16 @@ class AdminController extends Controller
                 ]);
             }
 
-            if ($booking['voucher_id']) {
-                Voucher::where('id', $booking['voucher_id'])->increment('digunakan');
+            // ======================
+            // UPDATE VOUCHER
+            // ======================
+            if ($booking->voucher_id) {
+                Voucher::where('id', $booking->voucher_id)->increment('digunakan');
             }
 
+            // ======================
             // EMAIL
+            // ======================
             if (!in_array($booking->sumber, ['booking.com', 'agoda', 'tiket.com'])) {
                 try {
                     Mail::to($booking->email)
@@ -350,16 +376,21 @@ class AdminController extends Controller
 
             if ($request->hasFile('bukti_pembayaran')) {
 
-                // hapus file lama (opsional tapi bagus)
-                if ($booking->bukti_pembayaran && Storage::exists('public/' . $booking->bukti_pembayaran)) {
-                    Storage::delete('public/' . $booking->bukti_pembayaran);
+                // 🔥 hapus file lama (optional, tapi tetap aman)
+                if (
+                    $booking->bukti_pembayaran &&
+                    Storage::disk('public')->exists($booking->bukti_pembayaran)
+                ) {
+
+                    Storage::disk('public')->delete($booking->bukti_pembayaran);
                 }
 
                 $file = $request->file('bukti_pembayaran');
-                $namaFile = 'bukti/' . time() . '_' . $file->getClientOriginalName();
-                $file->storeAs('public', $namaFile);
+                $ext = $file->getClientOriginalExtension();
+                $namaFile = $booking->kode_booking . '.' . $ext;
+                $file->storeAs('public/bukti', $namaFile);
 
-                $bukti = $namaFile;
+                $bukti = 'bukti/' . $namaFile;
             }
 
             // diskon

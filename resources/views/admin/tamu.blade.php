@@ -37,7 +37,7 @@
     <div class="col-md-2">
         <select name="room" class="form-control">
             <option value="">Semua Kamar</option>
-            @for($i=1; $i<=5; $i++) <option value="{{$i}}" {{request('room')==$i?'selected':''}}>
+            @for($i=2; $i<=6; $i++) <option value="{{$i}}" {{request('room')==$i?'selected':''}}>
                 Kamar {{$i}}
                 </option>
                 @endfor
