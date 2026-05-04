@@ -819,7 +819,9 @@ class AdminController extends Controller
         $query = \App\Models\Booking::with('rooms')
             ->where('status', '!=', 'cancelled');
 
-        // 🔁 COPY FILTER (HARUS SAMA)
+        // ======================
+        // FILTER
+        // ======================
         if ($r->search) {
             $query->where('nama', 'like', '%' . $r->search . '%');
         }
@@ -845,9 +847,65 @@ class AdminController extends Controller
             });
         }
 
+        // ======================
+        // AMBIL DATA
+        // ======================
         $data = $query->orderBy('check_in', 'asc')->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.tamu_pdf', compact('data'));
+        // ======================
+        // KETERANGAN FILTER
+        // ======================
+        $keterangan = '';
+
+        if ($r->today) {
+            $keterangan = 'Data Menginap Hari Ini (' . now()->format('d M Y') . ')';
+        } elseif ($r->search) {
+            $keterangan = 'Pencarian Nama: ' . $r->search;
+        } elseif ($r->check_in || $r->check_out) {
+
+            $keterangan = 'Periode: ';
+
+            if ($r->check_in) {
+                $keterangan .= date('d M Y', strtotime($r->check_in));
+            }
+
+            $keterangan .= ' - ';
+
+            if ($r->check_out) {
+                $keterangan .= date('d M Y', strtotime($r->check_out));
+            }
+        } elseif ($r->room) {
+            $keterangan = 'Filter Kamar: ' . $r->room;
+        } else {
+            $keterangan = 'Periode ' . now()->format('F Y');
+        }
+
+        // ======================
+        // RANGE TANGGAL
+        // ======================
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data untuk PDF');
+        }
+
+        $start = $data->min('check_in');
+        $end   = $data->max('check_out');
+
+        $periode = \Carbon\CarbonPeriod::create($start, $end);
+
+        // ======================
+        // DATA ROOM (EXCLUDE PRIVATE)
+        // ======================
+        $rooms = \App\Models\Room::where('status', '!=', 'private')
+            ->orderBy('nomor_kamar')
+            ->get();
+
+        // ======================
+        // PDF
+        // ======================
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'admin.tamu_pdf',
+            compact('data', 'periode', 'rooms', 'keterangan')
+        );
 
         return $pdf->stream('data-tamu.pdf');
     }

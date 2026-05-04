@@ -21,9 +21,8 @@ class BookingController extends Controller
     public function getFullDates()
     {
         $rooms = Room::where('status', 'available')->count();
-        $otaBuffer = 1;
 
-        $totalRooms = $rooms - $otaBuffer;
+        $totalRooms = $rooms;
 
         $bookings = Booking::where('status', '!=', 'cancelled')->get();
 
@@ -75,14 +74,8 @@ class BookingController extends Controller
 
             // LOGIC OVERLAP
             ->where(function ($q) use ($checkin, $checkout) {
-
-                $q->whereBetween('check_in', [$checkin, $checkout])
-                    ->orWhereBetween('check_out', [$checkin, $checkout])
-                    ->orWhere(function ($q) use ($checkin, $checkout) {
-
-                        $q->where('check_in', '<=', $checkin)
-                            ->where('check_out', '>=', $checkout);
-                    });
+                $q->where('check_in', '<', $checkout)
+                    ->where('check_out', '>', $checkin);
             })
 
             ->pluck('room_id');
